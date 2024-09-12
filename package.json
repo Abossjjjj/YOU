@@ -1,0 +1,22 @@
+{
+  "name": "telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot using Telegraf",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "axios": "^1.4.0",
+    "crypto": "^1.0.1",
+    "uuid": "^9.0.0",
+    "fs": "latest",
+    "path": "latest"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
