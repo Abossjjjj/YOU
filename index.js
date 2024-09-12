@@ -207,6 +207,18 @@ function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
+const getLocationInfo = async (userId) => {
+    try {
+        // استدعاء API لجلب معلومات الموقع بناءً على معرف الحساب أو البيانات الأخرى
+        const response = await axios.get(`http://ip-api.com/json/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching location info:', error);
+        return {};
+    }
+};
+
+
 bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const user = match[1];
@@ -288,8 +300,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         const reData = re.data;
 
         // إضافة طلب لمعرفة الدولة بناءً على معرف الحساب
-        const countryInfoResponse = await axios.get(`http://ip-api.com/json/${rrData.data.user.ip_address}`);
-        const countryInfo = countryInfoResponse.data;
+        const locationInfo = await getLocationInfo(res.user.id);
 
         const msg = `
 ⋘─────━*معلومات الحساب*━─────⋙
@@ -310,19 +321,19 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
 الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${countryInfo.country || 'غير متاح'}  
-المدينة ⇾ ${countryInfo.city || 'غير متاح'}  
-المنطقة ⇾ ${countryInfo.regionName || 'غير متاح'}  
+الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
+المدينة ⇾ ${locationInfo.city || 'غير متاح'}  
+المنطقة ⇾ ${locationInfo.regionName || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
-المطور: @M02MM | @uiujq
+المطور: @SAGD112| @SJGDDW
 `;
-
 
         await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
+
     } catch (error) {
         console.error(error);
-        bot.sendMessage(chatId, `Error Username 🚫 ⇾ ${user}\nTry again`);
+        bot.sendMessage(chatId, `Error fetching info for ${user}`);
     }
 });
 
