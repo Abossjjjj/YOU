@@ -21,7 +21,7 @@ const ADMIN_ID = '7193004338'; // ضع معرف الشات الخاص بالمد
 let usersData = {}; // لتخزين بيانات المستخدمين بشكل منفصل
 let usedBefore = {}; // لتخزين المستخدمين الذين استخدموا البوت من قبل
 const forcedChannels = ['@SJGDDW', '@YYY_A12', '@YEMENCYBER101'];
-// باقي الكود الخاص بك...
+
 const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
 const bot = new TelegramBot(token, { polling: true });
 
@@ -46,8 +46,16 @@ async function getCountryInfo(countryCode) {
     }
 }
 
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
+
+    const isSubscribed = await checkSubscriptions(chatId);
+
+    if (!isSubscribed) {
+        // المستخدم غير مشترك، لن يتم إظهار الأزرار
+        return;
+    }
+
     const opts = {
         reply_markup: {
             inline_keyboard: [
@@ -58,13 +66,7 @@ bot.onText(/\/start/, (msg) => {
         parse_mode: 'HTML'
     };
 
-      const isSubscribed = await checkSubscriptions(chatId);
-
-    if (!isSubscribed) {
-        // المستخدم غير مشترك، لن يتم إظهار الأزرار
-        return;
-    }
- if (!usedBefore[chatId]) {
+    if (!usedBefore[chatId]) {
         // إذا لم يستخدم البوت من قبل، أرسل إشعارًا إلى المدير
         usedBefore[chatId] = true; // تسجيل أن المستخدم استخدم البوت
 
@@ -82,7 +84,7 @@ bot.onText(/\/start/, (msg) => {
 الوقت: ${currentTime}`;
 
         await bot.sendMessage(ADMIN_ID, adminMessage);
- }
+    }
 
     const message = `<strong>
 اهلا بك🎉
@@ -149,7 +151,6 @@ eşlik edebilir, örnek /ig mahos
     bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
 });
 
-
 async function checkSubscriptions(userId) {
     for (let channel of forcedChannels) {
         try {
@@ -169,7 +170,6 @@ async function checkSubscriptions(userId) {
     }
     return true;
 }
-
 
 
 bot.onText(/\/tik (.+)/, async (msg, match) => {
