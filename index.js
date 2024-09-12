@@ -2,8 +2,10 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 
-const token = '7244359397:AAHJieFIF4SnCD3EEHc5tWYeZXgfC7b_tEw';
+const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
 const bot = new TelegramBot(token, { polling: true });
 
 const uid = uuidv4();
