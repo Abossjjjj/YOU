@@ -5,10 +5,18 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-
 const app = express();
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 3000;
 
+app.get('/', (req, res) => {
+    res.send('Bot is running...');
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+// باقي الكود الخاص بك...
 const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
 const bot = new TelegramBot(token, { polling: true });
 
@@ -314,8 +322,3 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
 console.log('Bot is running...');
 
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
