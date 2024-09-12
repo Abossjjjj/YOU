@@ -199,7 +199,6 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function generateNoise() {
-    // Add a slight variation to user-agent and other headers to mimic different devices
     const userAgents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
@@ -217,7 +216,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Host": "i.instagram.com",
             "Connection": "Keep-Alive",
-            "User-Agent": generateNoise(),  // Adding noise to headers
+            "User-Agent": generateNoise(),
             "Cookie": `mid=YwvCRAABAAEsZcmT0OGJdPu3iLUs; csrftoken=${csr}`,
             "Cookie2": "$Version=1",
             "Accept-Language": "en-US",
@@ -232,7 +231,6 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "_csrftoken": csr
         };
 
-        // Delay to avoid rapid requests
         await delay(3000);
 
         const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
@@ -272,7 +270,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': generateNoise(),  // Obfuscating the request with varying user-agent
+            'user-agent': generateNoise(),
             'viewport-width': '1051',
             'x-asbd-id': '198387',
             'x-csrftoken': '5DoPPeHPd4nUej9JiwCdkvwwmbmkDWpy',
@@ -281,7 +279,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             'x-requested-with': 'XMLHttpRequest',
         };
 
-        await delay(2000);  // Delay between subsequent requests
+        await delay(2000);  
 
         const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
         const rrData = rr.data;
@@ -289,28 +287,36 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
         const reData = re.data;
 
+        // إضافة طلب لمعرفة الدولة بناءً على معرف الحساب
+        const countryInfoResponse = await axios.get(`http://ip-api.com/json/${rrData.data.user.ip_address}`);
+        const countryInfo = countryInfoResponse.data;
+
         const msg = `
-⋘─────━*معلومات*━─────⋙
+⋘─────━*معلومات الحساب*━─────⋙
 الاسم ⇾ ${rrData.data.user.full_name}  
 اسم المستخدم ⇾ @${user}  
 المعرف ⇾ ${rrData.data.user.id}  
 المتابعين ⇾ ${rrData.data.user.edge_followed_by.count}  
 المتابَعون ⇾ ${rrData.data.user.edge_follow.count}  
-السيرة الذاتية ⇾ ${rrData.data.user.biography}  
-التاريخ ⇾ ${reData.date}  
+السيرة الذاتية ⇾ ${rrData.data.user.biography || 'غير متاح'}  
+التاريخ ⇾ ${reData.date || 'غير متاح'}  
 الرابط ⇾ https://www.instagram.com/${user}  
 البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
 الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
-الخاص ⇾ ${res.user.is_private}  
+الخاص ⇾ ${res.user.is_private ? 'نعم' : 'لا'}  
 تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
-إعادة ضبط واتساب ⇾ ${res.can_wa_reset || 'غير متاح'}  
-إعادة ضبط SMS ⇾ ${res.can_sms_reset || 'غير متاح'}  
-إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset || 'غير متاح'}  
-الهاتف صالح ⇾ ${res.has_valid_phone || 'غير متاح'}  
-حساب موثق ⇾ ${res.user.is_verified}  
+إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
+الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
+حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
+الدولة ⇾ ${countryInfo.country || 'غير متاح'}  
+المدينة ⇾ ${countryInfo.city || 'غير متاح'}  
+المنطقة ⇾ ${countryInfo.regionName || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112 | @SJGDDW
+المطور: @M02MM | @uiujq
 `;
+
 
         await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
@@ -321,4 +327,3 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 console.log('Bot is running...');
-
