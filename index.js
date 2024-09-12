@@ -4,6 +4,10 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
+
+const app = express();
+app.use(bodyParser.json());
 
 const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
 const bot = new TelegramBot(token, { polling: true });
