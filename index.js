@@ -309,3 +309,9 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 console.log('Bot is running...');
+
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
