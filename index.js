@@ -377,8 +377,6 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
 الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
-المدينة ⇾ ${locationInfo.city || 'غير متاح'}  
-المنطقة ⇾ ${locationInfo.regionName || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
 المطور: @SAGD112| @SJGDDW
 `;
