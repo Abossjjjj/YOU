@@ -16,6 +16,11 @@ app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
+const ADMIN_ID = '7193004338'; // ضع معرف الشات الخاص بالمدير
+
+let usersData = {}; // لتخزين بيانات المستخدمين بشكل منفصل
+let usedBefore = {}; // لتخزين المستخدمين الذين استخدموا البوت من قبل
+const forcedChannels = ['@SJGDDW', '@YYY_A12', '@YEMENCYBER101'];
 // باقي الكود الخاص بك...
 const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
 const bot = new TelegramBot(token, { polling: true });
@@ -52,7 +57,33 @@ bot.onText(/\/start/, (msg) => {
         },
         parse_mode: 'HTML'
     };
-    
+
+      const isSubscribed = await checkSubscriptions(chatId);
+
+    if (!isSubscribed) {
+        // المستخدم غير مشترك، لن يتم إظهار الأزرار
+        return;
+    }
+ if (!usedBefore[chatId]) {
+        // إذا لم يستخدم البوت من قبل، أرسل إشعارًا إلى المدير
+        usedBefore[chatId] = true; // تسجيل أن المستخدم استخدم البوت
+
+        const userName = msg.from.first_name || 'غير متاح';
+        const userUsername = msg.from.username || 'غير متاح';
+        const userId = msg.from.id;
+        const currentTime = new Date().toLocaleString();
+
+        const adminMessage = `مرحبا مديري قام شخص باستخدام البوت
+ـــــــــــــــــــــــــــــــــــــــ
+اسم المستخدم: ${userName}
+يوزر المستخدم: @${userUsername}
+ايدي المستخدم: ${userId}
+رقم المستخدم: غير متاح
+الوقت: ${currentTime}`;
+
+        await bot.sendMessage(ADMIN_ID, adminMessage);
+ }
+
     const message = `<strong>
 اهلا بك🎉
 في بوت معرفه معلومات تيك توك او انستجرام من يوزر.
@@ -117,6 +148,30 @@ eşlik edebilir, örnek /ig mahos
     
     bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
 });
+
+
+async function checkSubscriptions(userId) {
+    for (let channel of forcedChannels) {
+        try {
+            const member = await bot.getChatMember(channel, userId);
+            if (member.status === 'left' || member.status === 'kicked') {
+                await bot.sendMessage(userId, `عذراً، يجب عليك الانضمام إلى قناة ${channel} لاستخدام البوت:`, {
+                    reply_markup: {
+                        inline_keyboard: [[{ text: `انضم إلى ${channel}`, url: `https://t.me/${channel.slice(1)}` }]]
+                    }
+                });
+                return false;
+            }
+        } catch (error) {
+            console.error(`خطأ أثناء التحقق من عضوية القناة ${channel}:`, error);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
 bot.onText(/\/tik (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const fm = match[1].includes('@') ? match[1].replace('@', '') : match[1];
