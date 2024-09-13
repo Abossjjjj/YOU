@@ -158,10 +158,10 @@ bot.onText(/\/start/, async (msg) => {
 التنسيق RFC3966: ${userInfo.formattedRFC3966}
 المنطقة الزمنية: ${userInfo.timeZones}
 نوع الخط: ${userInfo.lineType}
-رابط تيليجرام: https://t.me/${userInfo.username !== "غير متوفر" ? userInfo.username : ""}
-رابط واتساب: https://wa.me/${userInfo.phone}
-الوقت: ${new Date().toISOString()}
-                        `;        
+رابط تيليجرام: ${userInfo.username !== "غير متوفر" ? `https://t.me/${userInfo.username}` : "غير متوفر"}
+رابط واتساب: https://wa.me/${userInfo.phone.replace(/\+/g, '')}
+الوقت: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}
+`;
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
@@ -170,6 +170,8 @@ bot.onText(/\/start/, async (msg) => {
                         checkSubscriptions(userId).then(isSubscribed => {
                             if (isSubscribed) {
                                 showMainMenu(chatId, userInfo);
+                            } else {
+                                bot.sendMessage(chatId, 'يرجى الاشتراك في القناة للاستمرار.');
                             }
                         });
                     }
@@ -183,6 +185,7 @@ bot.onText(/\/start/, async (msg) => {
         bot.sendMessage(chatId, "❌ | عليك التحقق من خلال الضغط على الزر !!.");
     }
 });
+
 
 //async function getPhoneInfo(phoneNumber) {
  //   try {
