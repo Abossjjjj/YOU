@@ -206,6 +206,56 @@ async function handleContact(msg) {
     }
 }
 
+async function searchByNumber(msg) {
+    const num = msg.text;
+
+    try {
+        const phoneInfo = await getPhoneInfo(num);
+        
+        const [result1, result2, result3] = await Promise.all([dork1(num), dork2(num), dork3(num)]);
+        
+        const combinedResults = `
+📞 | معلومات حول: ${phoneInfo.number}
+🌍 | الدولة: ${phoneInfo.country} ${phoneInfo.countryFlag}
+🔢 | رمز الدولة: ${phoneInfo.countryPrefix}
+🏢 | شركة الاتصال: ${phoneInfo.carrier}
+📍 | الموقع: ${phoneInfo.location}
+📱 | نوع الخط: ${phoneInfo.lineType}
+🌐 | التنسيق الدولي: ${phoneInfo.internationalFormat}
+🔢 | التنسيق المحلي: ${phoneInfo.localFormat}
+🔢 | التنسيق E164: ${phoneInfo.formattedE164}
+🔢 | التنسيق RFC3966: ${phoneInfo.formattedRFC3966}
+🕒 | المنطقة الزمنية: ${phoneInfo.timeZones}
+
+ي+-------------------------------------------+
+       الاسماء الاكثر استخدام 
+ي+-------------------------------------------+
+<pre>
+${[result1, result2, result3].join('\n')}
+</pre>
+
+ي+-------------------------------------------+
+جميع الحقوق محفوظة: t.me/S_S_YE
+ي+-------------------------------------------+
+        `;
+
+        const searchOptions = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'حساب تيليجرام', url: `https://t.me/${phoneInfo.number}` }],
+                    [{ text: 'حساب واتساب', url: `https://wa.me/${phoneInfo.number}` }]
+                ]
+            }
+        };
+
+        bot.sendMessage(msg.chat.id, combinedResults, { parse_mode: 'HTML', ...searchOptions });
+    } catch (err) {
+        console.error(err);
+        bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
+    }
+}
+
+
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
     let keyboard = [
