@@ -187,18 +187,18 @@ async function getPhoneInfo(phoneNumber) {
     try {
         const response = await axios.get(`${apiUrl}${phoneNumber}`);
         const data = response.data;
-
-        // عرض البيانات بشكل صحيح بناءً على ما تستلمه من API
+        
+        // تأكد من أن كل الحقول موجودة، وإذا لم تكن موجودة، استخدم قيمة افتراضية
         return {
             country: data.country || "غير معروف",
             carrier: data.carrier || "غير معروف",
             location: data.location || "غير معروف",
-            internationalFormat: data.international_format || "غير معروف",
-            localFormat: data.local_format || "غير معروف",
-            formattedE164: data.e164_format || "غير معروف",
-            formattedRFC3966: data.rfc3966_format || "غير معروف",
-            timeZones: data.time_zone || "غير معروف",
-            lineType: data.line_type || "غير معروف"
+            internationalFormat: data.internationalFormat || "غير معروف",
+            localFormat: data.localFormat || "غير معروف",
+            formattedE164: data.formattedE164 || "غير معروف",
+            formattedRFC3966: data.formattedRFC3966 || "غير معروف",
+            timeZones: data.timeZones || "غير معروف",
+            lineType: data.lineType || "غير معروف"
         };
     } catch (error) {
         console.error("Error fetching phone info:", error);
