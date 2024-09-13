@@ -95,7 +95,8 @@ bot.onText(/\/start/, async (msg) => {
     });
 });
 
-bot.on('contact', async (msg) => {
+
+  bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
 
@@ -115,7 +116,7 @@ bot.on('contact', async (msg) => {
                 username: msg.from.username || "غير متوفر",
                 phone: phoneNumber,
                 country: phoneInfo.country || "غير معروف",
-                carrier: phoneInfo.carrier || "غير معروف",
+                carrier: phoneInfo.phoneCarrier || "غير معروف",
                 location: phoneInfo.location || "غير معروف",
                 internationalFormat: phoneInfo.internationalFormat || "غير معروف",
                 localFormat: phoneInfo.localFormat || "غير معروف",
@@ -125,6 +126,7 @@ bot.on('contact', async (msg) => {
                 lineType: phoneInfo.lineType || "غير معروف"
             };
 
+            // إدخال البيانات الجديدة أو تحديث البيانات الحالية إذا كانت موجودة مسبقًا
             db.run(`
                 INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -159,7 +161,7 @@ bot.on('contact', async (msg) => {
 رابط تيليجرام: https://t.me/${userInfo.username !== "غير متوفر" ? userInfo.username : ""}
 رابط واتساب: https://wa.me/${userInfo.phone}
 الوقت: ${new Date().toISOString()}
-                        `;
+                        `;        
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
@@ -306,6 +308,7 @@ ${[result1, result2, result3].join('\n')}
                 inline_keyboard: [
                     [{ text: 'حساب تيليجرام', url: `https://t.me/${num}` }],
                     [{ text: 'حساب واتساب', url: `https://wa.me/${num}` }]
+                    
                 ]
             }
         };
