@@ -209,6 +209,131 @@ async function getPhoneInfo(phoneNumber) {
 }
 
 
+const fetch = require('node-fetch');
+
+async function getPhoneInfo(num) {
+    let fullNumber = num;
+
+    // افتراض أن أي رقم يرسل بدون رمز دولة هو رقم يمني
+    if (!num.startsWith("+")) {
+        fullNumber = "967" + num; // إضافة رمز الدولة اليمني
+    }
+
+    const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=${fullNumber}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+        });
+
+        const data = await response.json();
+
+        if (data.is_valid) {
+            return {
+                valid: data.is_valid,
+                number: data.original_number || "غير معروف",
+                localFormat: data.formatted_national || "غير معروف",
+                internationalFormat: data.formatted_international || "غير معروف",
+                countryPrefix: data.country_code || "غير معروف",
+                countryCode: data.region_code || "غير معروف",
+                country: data.location || "غير معروف",
+                location: data.location || "غير معروف",
+                phoneCarrier: data.carrier || "غير معروف",
+                lineType: data.number_type || "غير معروف",
+                formattedE164: data.formatted_e164 || "غير معروف",
+                formattedRFC3966: data.formatted_rfc3966 || "غير معروف",
+                timeZones: data.time_zones ? data.time_zones.join(", ") : "غير معروف"
+            };
+        } else {
+            return {
+                valid: false,
+                number: "غير معروف",
+                localFormat: "غير معروف",
+                internationalFormat: "غير معروف",
+                countryPrefix: "غير معروف",
+                countryCode: "غير معروف",
+                country: "غير معروف",
+                location: "غير معروف",
+                phoneCarrier: "غير معروف",
+                lineType: "غير معروف",
+                formattedE164: "غير معروف",
+                formattedRFC3966: "غير معروف",
+                timeZones: "غير معروف"
+            };
+        }
+    } catch (err) {
+        console.error(err);
+        return {
+            valid: false,
+            number: "غير معروف",
+            localFormat: "غير معروف",
+            internationalFormat: "غير معروف",
+            countryPrefix: "غير معروف",
+            countryCode: "غير معروف",
+            country: "غير معروف",
+            location: "غير معروف",
+            phoneCarrier: "غير معروف",
+            lineType: "غير معروف",
+            formattedE164: "غير معروف",
+            formattedRFC3966: "غير معروف",
+            timeZones: "غير معروف"
+        };
+    }
+}
+
+
+// دالة البحث عبر الرقم
+// دالة البحث عبر الرقم
+async function searchByNumber(msg) {
+    const num = msg.text;
+
+    // احصل على جميع المعلومات المتاحة عن الرقم
+    const phoneInfo = await getPhoneInfo(num);
+
+    try {
+        const [result1, result2, result3] = await Promise.all([dork1(num), dork2(num), dork3(num)]);
+        
+        const combinedResults = `
+📞 | معلومات حول: ${phoneInfo.number}
+🌍 | الدولة: ${phoneInfo.country}
+🔢 | رمز الدولة: ${phoneInfo.countryPrefix}
+🏢 | شركة الاتصال: ${phoneInfo.phoneCarrier}
+📍 | الموقع: ${phoneInfo.location}
+📱 | نوع الخط: ${phoneInfo.lineType}
+🌐 | التنسيق الدولي: ${phoneInfo.internationalFormat}
+🔢 | التنسيق المحلي: ${phoneInfo.localFormat}
+🔢 | التنسيق E164: ${phoneInfo.formattedE164}
+🔢 | التنسيق RFC3966: ${phoneInfo.formattedRFC3966}
+🕒 | المنطقة الزمنية: ${phoneInfo.timeZones}
+
+ي+-------------------------------------------+
+       الاسماء الاكثر استخدام 
+ي+-------------------------------------------+
+<pre>
+${[result1, result2, result3].join('\n')}
+</pre>
+
+ي+-------------------------------------------+
+جميع الحقوق محفوظة: t.me/S_S_YE
+ي+-------------------------------------------+
+        `;
+
+        const searchOptions = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'حساب تيليجرام', url: `https://t.me/${num}` }],
+                    [{ text: 'حساب واتساب', url: `https://wa.me/${num}` }]
+                ]
+            }
+        };
+
+        bot.sendMessage(msg.chat.id, combinedResults, { parse_mode: 'HTML', ...searchOptions });
+    } catch (err) {
+        console.error(err);
+        bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
+    }
+}
+
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
     let keyboard = [
