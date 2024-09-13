@@ -95,7 +95,7 @@ bot.onText(/\/start/, async (msg) => {
     });
 });
 
-const { bot } = require('./bot-config'); //
+
 
 async function getPhoneInfo(num) {
     let fullNumber = num;
