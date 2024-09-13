@@ -3,8 +3,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,8 +20,7 @@ const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
 const db = new sqlite3.Database('bot_data.db');
 
-const uid = uuidv4();
-const csr = crypto.randomBytes(8).toString('hex').repeat(2);
+// تم إزالة المتغيرات غير المستخدمة: uid, csr
 
 function generateUserAgent() {
     return 'Mozilla/5.0 (Linux; Android 8.0.0; Plume L2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.88 Mobile Safari/537.36';
@@ -62,7 +59,6 @@ db.serialize(() => {
     )`);
 });
 
-// استقبال الرقم والتعامل معه
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -135,6 +131,10 @@ async function getPhoneInfo(num) {
     }
 }
 
+bot.on('contact', async (msg) => {
+    await handleContact(msg);
+});
+
 async function handleContact(msg) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -187,7 +187,7 @@ async function handleContact(msg) {
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
-                        bot.sendMessage(process.env.ADMIN_ID, userReport);
+                        bot.sendMessage(ADMIN_ID, userReport);
 
                         checkSubscriptions(userId).then(isSubscribed => {
                             if (isSubscribed) {
@@ -206,56 +206,6 @@ async function handleContact(msg) {
     }
 }
 
-async function searchByNumber(msg) {
-    const num = msg.text;
-
-    try {
-        const phoneInfo = await getPhoneInfo(num);
-        
-        const [result1, result2, result3] = await Promise.all([dork1(num), dork2(num), dork3(num)]);
-        
-        const combinedResults = `
-📞 | معلومات حول: ${phoneInfo.number}
-🌍 | الدولة: ${phoneInfo.country} ${phoneInfo.countryFlag}
-🔢 | رمز الدولة: ${phoneInfo.countryPrefix}
-🏢 | شركة الاتصال: ${phoneInfo.carrier}
-📍 | الموقع: ${phoneInfo.location}
-📱 | نوع الخط: ${phoneInfo.lineType}
-🌐 | التنسيق الدولي: ${phoneInfo.internationalFormat}
-🔢 | التنسيق المحلي: ${phoneInfo.localFormat}
-🔢 | التنسيق E164: ${phoneInfo.formattedE164}
-🔢 | التنسيق RFC3966: ${phoneInfo.formattedRFC3966}
-🕒 | المنطقة الزمنية: ${phoneInfo.timeZones}
-
-ي+-------------------------------------------+
-       الاسماء الاكثر استخدام 
-ي+-------------------------------------------+
-<pre>
-${[result1, result2, result3].join('\n')}
-</pre>
-
-ي+-------------------------------------------+
-جميع الحقوق محفوظة: t.me/S_S_YE
-ي+-------------------------------------------+
-        `;
-
-        const searchOptions = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: 'حساب تيليجرام', url: `https://t.me/${phoneInfo.number}` }],
-                    [{ text: 'حساب واتساب', url: `https://wa.me/${phoneInfo.number}` }]
-                ]
-            }
-        };
-
-        bot.sendMessage(msg.chat.id, combinedResults, { parse_mode: 'HTML', ...searchOptions });
-    } catch (err) {
-        console.error(err);
-        bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
-    }
-}
-
-
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
     let keyboard = [
@@ -265,7 +215,7 @@ function showMainMenu(chatId, userInfo) {
 
     // إضافة زر البحث للمشرف فقط
     if (isAdmin) {
-        keyboard.unshift([{ text: 'بحث عبر ID', callback_ 'search_id' }]);
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_data:'search_id' }]);
     }
 
     const opts = {
