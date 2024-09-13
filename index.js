@@ -59,8 +59,8 @@ bot.onText(/\/start/, async (msg) => {
     const opts = {
         reply_markup: {
             inline_keyboard: [
-                [{ text: 'المطور - Developer', url: 'https://t.me/SAGD112' }],
-                [{ text: 'قناة المطور - Channel Developer', url: 'https://t.me/SJGDDW'}]
+                [{ text: 'المطور - 𝐒𝐉𝐆𝐃 𖡔️️', url: 'https://t.me/SAGD112' }],
+                [{ text: 'قناة المطور - learn hacking', url: 'https://t.me/SJGDDW'}]
             ]
         },
         parse_mode: 'HTML'
