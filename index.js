@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');;
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -301,19 +301,21 @@ bot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
 
     if (data === 'search_id') {
-        async function searchById(msg) {
-    try {
-        const userId = parseInt(msg.text);
-        if (isNaN(userId)) {
-            throw new Error("يرجى إدخال ID صحيح.");
-        }
+        // التحقق مما إذا كان المستخدم هو الأدمن
+        if (msg.chat.id.toString() === ADMIN_ID) {
+            async function searchById(msg) {
+                try {
+                    const userId = parseInt(msg.text);
+                    if (isNaN(userId)) {
+                        throw new Error("يرجى إدخال ID صحيح.");
+                    }
 
-        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
-            if (err) {
-                console.error(err);
-                bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
-            } else if (row) {
-                const userReport = `
+                    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+                        if (err) {
+                            console.error(err);
+                            bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
+                        } else if (row) {
+                            const userReport = `
 تم العثور على المعلومات:
 📞 | رقم الهاتف: ${row.phone}
 🧍‍♂️ | الاسم: ${row.name}
@@ -329,29 +331,31 @@ bot.on('callback_query', async (callbackQuery) => {
 🔢 | التنسيق E164: ${row.formattedE164 || "غير معروف"}
 🔢 | التنسيق RFC3966: ${row.formattedRFC3966 || "غير معروف"}
 🕒 | المنطقة الزمنية: ${row.timeZones || "غير معروف"}
-                `;
+                            `;
 
-                
-                const buttons = {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: "🔗 حسابه تيليجرام", url: `https://t.me/${row.username}` }],
-                            [{ text: "🔗 حسابه الحالي", url: `https://t.me/${row.username}` }],
-                            [{ text: "🔗 حسابه واتساب", url: `https://wa.me/${row.phone}` }]
-                        ]
-                    }
-                };
+                            const buttons = {
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: "🔗 حسابه تيليجرام", url: `https://t.me/${row.username}` }],
+                                        [{ text: "🔗 حسابه الحالي", url: `https://t.me/${row.username}` }],
+                                        [{ text: "🔗 حسابه واتساب", url: `https://wa.me/${row.phone}` }]
+                                    ]
+                                }
+                            };
 
-                bot.sendMessage(msg.chat.id, userReport, buttons);
-            } else {
-                bot.sendMessage(msg.chat.id, 'ID المستخدم غير موجود في السجلات.');
+                            bot.sendMessage(msg.chat.id, userReport, buttons);
+                        } else {
+                            bot.sendMessage(msg.chat.id, 'ID المستخدم غير موجود في السجلات.');
+                        }
+                    });
+                } catch (error) {
+                    bot.sendMessage(msg.chat.id, error.message);
+                }
             }
-        });
-    } catch (error) {
-        bot.sendMessage(msg.chat.id, error.message);
-    }
-}
-        bot.sendMessage(msg.chat.id, 'أدخل ID للبحث عنه:');
+            bot.sendMessage(msg.chat.id, 'أدخل ID للبحث عنه:');
+        } else {
+            bot.sendMessage(msg.chat.id, '❌ هذه الميزة متاحة للأدمن فقط.');
+        }
     }
 });
 
