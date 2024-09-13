@@ -20,7 +20,7 @@ app.listen(PORT, () => {
 const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
-const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
+//const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
 const db = new sqlite3.Database('bot_data.db');
 
@@ -182,15 +182,15 @@ bot.on('contact', async (msg) => {
     }
 });
 
-async function getPhoneInfo(phoneNumber) {
-    try {
-        const response = await axios.get(`${apiUrl}${phoneNumber}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching phone info:", error);
-        throw error;
-    }
-}
+//async function getPhoneInfo(phoneNumber) {
+ //   try {
+//    //    const response = await axios.get(`${apiUrl}${phoneNumber}`);
+    //    return response.data;
+  //  } catch (error) {
+   //     console.error("Error fetching phone info:", error);
+     //   throw error;
+   // }
+//}
 
 const fetch = require('node-fetch');
 
