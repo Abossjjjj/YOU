@@ -21,7 +21,7 @@ const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
 
-const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=${fullNumber}`;
+const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
 const db = new sqlite3.Database('bot_data.db');
 
@@ -183,6 +183,28 @@ bot.on('contact', async (msg) => {
     }
 });
 
+async function getPhoneInfo(phoneNumber) {
+    try {
+        const response = await axios.get(`${apiUrl}${phoneNumber}`);
+        const data = response.data;
+
+        // عرض البيانات بشكل صحيح بناءً على ما تستلمه من API
+        return {
+            country: data.country || "غير معروف",
+            carrier: data.carrier || "غير معروف",
+            location: data.location || "غير معروف",
+            internationalFormat: data.international_format || "غير معروف",
+            localFormat: data.local_format || "غير معروف",
+            formattedE164: data.e164_format || "غير معروف",
+            formattedRFC3966: data.rfc3966_format || "غير معروف",
+            timeZones: data.time_zone || "غير معروف",
+            lineType: data.line_type || "غير معروف"
+        };
+    } catch (error) {
+        console.error("Error fetching phone info:", error);
+        throw error;
+    }
+}
 
 
 function showMainMenu(chatId, userInfo) {
