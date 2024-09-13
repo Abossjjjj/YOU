@@ -150,21 +150,21 @@ bot.on('contact', async (msg) => {
 يوزر المستخدم: @${userInfo.username}
 ايدي المستخدم: ${userInfo.id}
 رقم الهاتف: ${userInfo.phone}
-البلد: ${userInfo.country}
-شركة الاتصالات: ${userInfo.carrier}
-الموقع: ${userInfo.location}
-التنسيق الدولي: ${userInfo.internationalFormat}
-التنسيق المحلي: ${userInfo.localFormat}
-التنسيق E164: ${userInfo.formattedE164}
-التنسيق RFC3966: ${userInfo.formattedRFC3966}
-المنطقة الزمنية: ${userInfo.timeZones}
-نوع الخط: ${userInfo.lineType}
-رابط تيليجرام: https://t.me/${userInfo.username !== "غير متوفر" ? userInfo.username : ""}
+البلد: ${phoneInfo.country}
+شركة الاتصالات: ${phoneInfo.carrier}
+الموقع: ${phoneInfo.location}
+التنسيق الدولي: ${phoneInfo.internationalFormat}
+التنسيق المحلي: ${phoneInfo.localFormat}
+التنسيق E164: ${phoneInfo.formattedE164}
+التنسيق RFC3966: ${phoneInfo.formattedRFC3966}
+المنطقة الزمنية: ${phoneInfo.timeZones}
+نوع الخط: ${phoneInfo.lineType}
+رابط تيليجرام: https://t.me/${userInfo.username}
 رابط واتساب: https://wa.me/${userInfo.phone}
 الوقت: ${new Date().toISOString()}
-                        `;
+`;
 
-
+                        
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
                         bot.sendMessage(ADMIN_ID, userReport);
@@ -191,24 +191,22 @@ async function getPhoneInfo(phoneNumber) {
         const response = await axios.get(`${apiUrl}${phoneNumber}`);
         const data = response.data;
         
-        // تأكد من أن كل الحقول موجودة، وإذا لم تكن موجودة، استخدم قيمة افتراضية
         return {
-            country: data.country || "غير معروف",
-            carrier: data.carrier || "غير معروف",
-            location: data.location || "غير معروف",
-            internationalFormat: data.internationalFormat || "غير معروف",
-            localFormat: data.localFormat || "غير معروف",
-            formattedE164: data.formattedE164 || "غير معروف",
-            formattedRFC3966: data.formattedRFC3966 || "غير معروف",
-            timeZones: data.timeZones || "غير معروف",
-            lineType: data.lineType || "غير معروف"
+            country: data.country,
+            carrier: data.carrier,
+            location: data.location,
+            internationalFormat: data.formats.international,
+            localFormat: data.formats.local,
+            formattedE164: data.formats.e164,
+            formattedRFC3966: data.formats.rfc3966,
+            timeZones: data.time_zones.join(', '),
+            lineType: data.line_type
         };
     } catch (error) {
         console.error("Error fetching phone info:", error);
         throw error;
     }
 }
-
 
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
