@@ -201,7 +201,7 @@ function showMainMenu(chatId, userInfo) {
 
     // إضافة زر البحث للمشرف فقط
     if (isAdmin) {
-        keyboard.unshift([{ text: 'بحث عبر ID', callback_ 'search_id' }]);
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_data:'search_id' }]);
     }
 
     const opts = {
