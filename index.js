@@ -3,6 +3,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,9 +20,12 @@ app.listen(PORT, () => {
 const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
+const apiUrl = 'https://illyvoip.com/my/application/number_lookup/?phonenumber=';
+
 const db = new sqlite3.Database('bot_data.db');
 
-// تم إزالة المتغيرات غير المستخدمة: uid, csr
+const uid = uuidv4();
+const csr = crypto.randomBytes(8).toString('hex').repeat(2);
 
 function generateUserAgent() {
     return 'Mozilla/5.0 (Linux; Android 8.0.0; Plume L2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.88 Mobile Safari/537.36';
@@ -59,6 +64,7 @@ db.serialize(() => {
     )`);
 });
 
+// استقبال الرقم والتعامل معه
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
@@ -84,64 +90,23 @@ bot.onText(/\/start/, async (msg) => {
             const isSubscribed = await checkSubscriptions(userId);
             if (isSubscribed) {
                 showMainMenu(chatId, row);
+            } else {
+                bot.sendMessage(chatId, 'يرجى الاشتراك في القناة للاستمرار.');
             }
         }
     });
 });
 
-async function getPhoneInfo(num) {
-    let fullNumber = num;
-
-    if (!phoneNumber.startsWith('+')) {
-
-        fullNumber = "+967" + num;
-    }
-
-    const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=${fullNumber}`;
-
-    try {
-        const response = await axios.get(apiUrl, {
-            headers: { 'User-Agent': generateUserAgent() }
-        });
-        const data = response.data;
-
-        if (data.is_valid) {
-            const countryInfo = await getCountryInfo(data.region_code);
-            return {
-                valid: data.is_valid,
-                number: data.original_number || "غير معروف",
-                localFormat: data.formatted_national || "غير معروف",
-                internationalFormat: data.formatted_international || "غير معروف",
-                countryPrefix: data.country_code || "غير معروف",
-                countryCode: data.region_code || "غير معروف",
-                country: countryInfo.name || "غير معروف",
-                countryFlag: countryInfo.flag || "🏳️",
-                location: data.location || "غير معروف",
-                carrier: data.carrier || "غير معروف",
-                lineType: data.number_type || "غير معروف",
-                formattedE164: data.formatted_e164 || "غير معروف",
-                formattedRFC3966: data.formatted_rfc3966 || "غير معروف",
-                timeZones: data.time_zones ? data.time_zones.join(", ") : "غير معروف"
-            };
-        } else {
-            throw new Error('رقم الهاتف غير صالح');
-        }
-    } catch (error) {
-        console.error("Error fetching phone info:", error);
-        throw error;
-    }
-}
-
 bot.on('contact', async (msg) => {
-    await handleContact(msg);
-});
-
-async function handleContact(msg) {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
 
     if (msg.contact.user_id === userId) {
         let phoneNumber = msg.contact.phone_number;
+
+        if (!phoneNumber.startsWith('+')) {
+            phoneNumber = `+${phoneNumber}`;
+        }
 
         try {
             const phoneInfo = await getPhoneInfo(phoneNumber);
@@ -151,15 +116,27 @@ async function handleContact(msg) {
                 name: msg.from.first_name || "غير متوفر",
                 username: msg.from.username || "غير متوفر",
                 phone: phoneNumber,
-                ...phoneInfo
+                country: phoneInfo.country || "غير معروف",
+                carrier: phoneInfo.carrier || "غير معروف",
+                location: phoneInfo.location || "غير معروف",
+                internationalFormat: phoneInfo.internationalFormat || "غير معروف",
+                localFormat: phoneInfo.localFormat || "غير معروف",
+                formattedE164: phoneInfo.formattedE164 || "غير معروف",
+                formattedRFC3966: phoneInfo.formattedRFC3966 || "غير معروف",
+                timeZones: Array.isArray(phoneInfo.timeZones) ? phoneInfo.timeZones.join(', ') : (phoneInfo.timeZones || "غير معروف"),
+                lineType: phoneInfo.lineType || "غير معروف"
             };
 
-            // حفظ البيانات في قاعدة البيانات
-            db.run(`INSERT OR REPLACE INTO users 
-                (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType) 
+            db.run(
+                `INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [userInfo.id, userInfo.name, userInfo.username, userInfo.phone, userInfo.country, userInfo.carrier, userInfo.location,
-                userInfo.internationalFormat, userInfo.localFormat, userInfo.formattedE164, userInfo.formattedRFC3966, userInfo.timeZones, userInfo.lineType],
+                [
+                    userInfo.id, userInfo.name, userInfo.username, userInfo.phone, 
+                    userInfo.country, userInfo.carrier, userInfo.location, 
+                    userInfo.internationalFormat, userInfo.localFormat, 
+                    userInfo.formattedE164, userInfo.formattedRFC3966, 
+                    userInfo.timeZones, userInfo.lineType
+                ],
                 (err) => {
                     if (err) {
                         console.error('Error saving data:', err);
@@ -171,8 +148,8 @@ async function handleContact(msg) {
 اسم المستخدم: ${userInfo.name}
 يوزر المستخدم: @${userInfo.username}
 ايدي المستخدم: ${userInfo.id}
-رقم الهاتف: ${userInfo.number}
-البلد: ${userInfo.country} ${userInfo.countryFlag}
+رقم الهاتف: ${userInfo.phone}
+البلد: ${userInfo.country}
 شركة الاتصالات: ${userInfo.carrier}
 الموقع: ${userInfo.location}
 التنسيق الدولي: ${userInfo.internationalFormat}
@@ -181,10 +158,10 @@ async function handleContact(msg) {
 التنسيق RFC3966: ${userInfo.formattedRFC3966}
 المنطقة الزمنية: ${userInfo.timeZones}
 نوع الخط: ${userInfo.lineType}
-رابط تيليجرام: https://t.me/${userInfo.username}
-رابط واتساب: https://wa.me/${userInfo.number}
-الوقت: ${new Date().toISOString()}
-                        `;
+رابط تيليجرام: ${userInfo.username !== "غير متوفر" ? `https://t.me/${userInfo.username}` : "غير متوفر"}
+رابط واتساب: https://wa.me/${userInfo.phone.replace(/\+/g, '')}
+الوقت: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}
+`;
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
@@ -193,19 +170,44 @@ async function handleContact(msg) {
                         checkSubscriptions(userId).then(isSubscribed => {
                             if (isSubscribed) {
                                 showMainMenu(chatId, userInfo);
+                            } else {
+                                bot.sendMessage(chatId, 'يرجى الاشتراك في القناة للاستمرار.');
                             }
                         });
                     }
                 }
             );
         } catch (error) {
-            console.error("Error processing phone info:", error);
+            console.error("Error fetching phone info:", error);
             bot.sendMessage(chatId, 'حدث خطأ أثناء محاولة الحصول على معلومات الهاتف.');
         }
     } else {
         bot.sendMessage(chatId, "❌ | عليك التحقق من خلال الضغط على الزر !!.");
     }
+});
+
+async function getPhoneInfo(phoneNumber) {
+    try {
+        const response = await axios.get(`${apiUrl}${phoneNumber}`, {
+            headers: { 'User-Agent': generateUserAgent() }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching phone info:", error);
+        return {
+            country: "غير معروف",
+            carrier: "غير معروف",
+            location: "غير معروف",
+            internationalFormat: "غير معروف",
+            localFormat: "غير معروف",
+            formattedE164: "غير معروف",
+            formattedRFC3966: "غير معروف",
+            timeZones: "غير معروف",
+            lineType: "غير معروف"
+        };
+    }
 }
+
 
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
@@ -216,7 +218,7 @@ function showMainMenu(chatId, userInfo) {
 
     // إضافة زر البحث للمشرف فقط
     if (isAdmin) {
-        keyboard.unshift([{ text: 'بحث عبر ID', callback_data:'search_id' }]);
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_ 'search_id' }]);
     }
 
     const opts = {
