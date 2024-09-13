@@ -21,7 +21,6 @@ const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
 
-const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
 const db = new sqlite3.Database('bot_data.db');
 
@@ -96,6 +95,46 @@ bot.onText(/\/start/, async (msg) => {
     });
 });
 
+const { bot } = require('./bot-config'); //
+
+async function getPhoneInfo(num) {
+    let fullNumber = num;
+
+    // إضافة رمز الدولة اليمني إذا لم يكن موجودًا
+    if (!num.startsWith("+")) {
+        fullNumber = "+967" + num;
+    }
+
+    const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=${fullNumber}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        if (data.is_valid) {
+            return {
+                valid: data.is_valid,
+                number: data.original_number || "غير معروف",
+                localFormat: data.formatted_national || "غير معروف",
+                internationalFormat: data.formatted_international || "غير معروف",
+                countryPrefix: data.country_code || "غير معروف",
+                countryCode: data.region_code || "غير معروف",
+                country: data.location || "غير معروف",
+                location: data.location || "غير معروف",
+                carrier: data.carrier || "غير معروف",
+                lineType: data.number_type || "غير معروف",
+                formattedE164: data.formatted_e164 || "غير معروف",
+                formattedRFC3966: data.formatted_rfc3966 || "غير معروف",
+                timeZones: data.time_zones ? data.time_zones.join(", ") : "غير معروف"
+            };
+        } else {
+            throw new Error('رقم الهاتف غير صالح');
+        }
+    } catch (error) {
+        console.error("Error fetching phone info:", error);
+        throw error;
+    }
+}
 
 bot.on('contact', async (msg) => {
     const chatId = msg.chat.id;
@@ -103,10 +142,6 @@ bot.on('contact', async (msg) => {
 
     if (msg.contact.user_id === userId) {
         let phoneNumber = msg.contact.phone_number;
-
-        if (!phoneNumber.startsWith('+')) {
-            phoneNumber = `+${phoneNumber}`;
-        }
 
         try {
             const phoneInfo = await getPhoneInfo(phoneNumber);
@@ -116,40 +151,15 @@ bot.on('contact', async (msg) => {
                 name: msg.from.first_name || "غير متوفر",
                 username: msg.from.username || "غير متوفر",
                 phone: phoneNumber,
-                country: phoneInfo.country || "غير معروف",
-                carrier: phoneInfo.phoneCarrier || "غير معروف",
-                location: phoneInfo.location || "غير معروف",
-                internationalFormat: phoneInfo.internationalFormat || "غير معروف",
-                localFormat: phoneInfo.localFormat || "غير معروف",
-                formattedE164: phoneInfo.formattedE164 || "غير معروف",
-                formattedRFC3966: phoneInfo.formattedRFC3966 || "غير معروف",
-                timeZones: phoneInfo.timeZones || "غير معروف",
-                lineType: phoneInfo.lineType || "غير معروف"
             };
 
-            // إدخال البيانات الجديدة أو تحديث البيانات الحالية إذا كانت موجودة مسبقًا
-            db.run(`
-                INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    userInfo.id, userInfo.name, userInfo.username, userInfo.phone, 
-                    userInfo.country, userInfo.carrier, userInfo.location, 
-                    userInfo.internationalFormat, userInfo.localFormat, 
-                    userInfo.formattedE164, userInfo.formattedRFC3966, 
-                    userInfo.timeZones, userInfo.lineType
-                ],
-                (err) => {
-                    if (err) {
-                        console.error('Error saving data:', err);
-                        bot.sendMessage(chatId, 'حدث خطأ أثناء حفظ البيانات.');
-                    } else {
-                        const userReport = `
+            const userReport = `
 مرحبا مديري، قام شخص باستخدام البوت:
 ـــــــــــــــــــــــــــــــــــــــ
 اسم المستخدم: ${userInfo.name}
 يوزر المستخدم: @${userInfo.username}
 ايدي المستخدم: ${userInfo.id}
-رقم الهاتف: ${userInfo.phone}
+رقم الهاتف: ${phoneInfo.number}
 البلد: ${phoneInfo.country}
 شركة الاتصالات: ${phoneInfo.carrier}
 الموقع: ${phoneInfo.location}
@@ -160,25 +170,23 @@ bot.on('contact', async (msg) => {
 المنطقة الزمنية: ${phoneInfo.timeZones}
 نوع الخط: ${phoneInfo.lineType}
 رابط تيليجرام: https://t.me/${userInfo.username}
-رابط واتساب: https://wa.me/${userInfo.phone}
+رابط واتساب: https://wa.me/${phoneInfo.number}
 الوقت: ${new Date().toISOString()}
-`;
+            `;
 
-                        
-                        bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
-                        
-                        bot.sendMessage(ADMIN_ID, userReport);
+            bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
+            
+            bot.sendMessage(ADMIN_ID, userReport);
 
-                        checkSubscriptions(userId).then(isSubscribed => {
-                            if (isSubscribed) {
-                                showMainMenu(chatId, userInfo);
-                            }
-                        });
-                    }
+            // هنا يمكنك إضافة التحقق من الاشتراك وإظهار القائمة الرئيسية
+            checkSubscriptions(userId).then(isSubscribed => {
+                if (isSubscribed) {
+                    showMainMenu(chatId, userInfo);
                 }
-            );
+            });
+
         } catch (error) {
-            console.error("Error fetching phone info:", error);
+            console.error("Error processing phone info:", error);
             bot.sendMessage(chatId, 'حدث خطأ أثناء محاولة الحصول على معلومات الهاتف.');
         }
     } else {
@@ -186,27 +194,57 @@ bot.on('contact', async (msg) => {
     }
 });
 
-async function getPhoneInfo(phoneNumber) {
+async function searchByNumber(msg) {
+    const num = msg.text;
+
     try {
-        const response = await axios.get(`${apiUrl}${phoneNumber}`);
-        const data = response.data;
+        const phoneInfo = await getPhoneInfo(num);
         
-        return {
-            country: data.country,
-            carrier: data.carrier,
-            location: data.location,
-            internationalFormat: data.formats.international,
-            localFormat: data.formats.local,
-            formattedE164: data.formats.e164,
-            formattedRFC3966: data.formats.rfc3966,
-            timeZones: data.time_zones.join(', '),
-            lineType: data.line_type
+        // هنا يمكنك إضافة دوال البحث الإضافية (dork1, dork2, dork3) إذا كنت بحاجة إليها
+        // const [result1, result2, result3] = await Promise.all([dork1(num), dork2(num), dork3(num)]);
+
+        const combinedResults = `
+📞 | معلومات حول: ${phoneInfo.number}
+🌍 | الدولة: ${phoneInfo.country}
+🔢 | رمز الدولة: ${phoneInfo.countryPrefix}
+🏢 | شركة الاتصال: ${phoneInfo.carrier}
+📍 | الموقع: ${phoneInfo.location}
+📱 | نوع الخط: ${phoneInfo.lineType}
+🌐 | التنسيق الدولي: ${phoneInfo.internationalFormat}
+🔢 | التنسيق المحلي: ${phoneInfo.localFormat}
+🔢 | التنسيق E164: ${phoneInfo.formattedE164}
+🔢 | التنسيق RFC3966: ${phoneInfo.formattedRFC3966}
+🕒 | المنطقة الزمنية: ${phoneInfo.timeZones}
+
+ي+-------------------------------------------+
+       الاسماء الاكثر استخدام 
+ي+-------------------------------------------+
+<pre>
+${/* هنا يمكنك إضافة نتائج البحث الإضافية */}
+</pre>
+
+ي+-------------------------------------------+
+جميع الحقوق محفوظة: t.me/S_S_YE
+ي+-------------------------------------------+
+        `;
+
+        const searchOptions = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'حساب تيليجرام', url: `https://t.me/${phoneInfo.number}` }],
+                    [{ text: 'حساب واتساب', url: `https://wa.me/${phoneInfo.number}` }]
+                ]
+            }
         };
-    } catch (error) {
-        console.error("Error fetching phone info:", error);
-        throw error;
+
+        bot.sendMessage(msg.chat.id, combinedResults, { parse_mode: 'HTML', ...searchOptions });
+    } catch (err) {
+        console.error(err);
+        bot.sendMessage(msg.chat.id, 'حدث خطأ أثناء البحث.');
     }
 }
+
+
 
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
@@ -217,7 +255,7 @@ function showMainMenu(chatId, userInfo) {
 
     // إضافة زر البحث للمشرف فقط
     if (isAdmin) {
-        keyboard.unshift([{ text: 'بحث عبر ID', callback_data:'search_id' }]);
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_ 'search_id' }]);
     }
 
     const opts = {
@@ -604,3 +642,8 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 console.log('Bot is running...');
+
+
+
+
+// تأكد من تعريف هذه الدوال أو استيرادها من ملف آخر
