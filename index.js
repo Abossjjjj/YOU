@@ -92,7 +92,8 @@ bot.onText(/\/start/, async (msg) => {
 async function getPhoneInfo(num) {
     let fullNumber = num;
 
-    if (!num.startsWith("+")) {
+    if (!phoneNumber.startsWith('+')) {
+
         fullNumber = "+967" + num;
     }
 
