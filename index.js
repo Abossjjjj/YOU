@@ -20,7 +20,7 @@ app.listen(PORT, () => {
 const ADMIN_ID = '7193004338'; // معرف المشرف
 const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
-const apiUrl = 'https://illyvoip.com/my/application/number_lookup/?phonenumber=';
+const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
 const db = new sqlite3.Database('bot_data.db');
 
@@ -90,8 +90,6 @@ bot.onText(/\/start/, async (msg) => {
             const isSubscribed = await checkSubscriptions(userId);
             if (isSubscribed) {
                 showMainMenu(chatId, row);
-            } else {
-                bot.sendMessage(chatId, 'يرجى الاشتراك في القناة للاستمرار.');
             }
         }
     });
@@ -123,12 +121,12 @@ bot.on('contact', async (msg) => {
                 localFormat: phoneInfo.localFormat || "غير معروف",
                 formattedE164: phoneInfo.formattedE164 || "غير معروف",
                 formattedRFC3966: phoneInfo.formattedRFC3966 || "غير معروف",
-                timeZones: Array.isArray(phoneInfo.timeZones) ? phoneInfo.timeZones.join(', ') : (phoneInfo.timeZones || "غير معروف"),
+                timeZones: phoneInfo.timeZones || "غير معروف",
                 lineType: phoneInfo.lineType || "غير معروف"
             };
 
-            db.run(
-                `INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
+            db.run(`
+                INSERT OR REPLACE INTO users (id, name, username, phone, country, carrier, location, internationalFormat, localFormat, formattedE164, formattedRFC3966, timeZones, lineType)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     userInfo.id, userInfo.name, userInfo.username, userInfo.phone, 
@@ -158,10 +156,10 @@ bot.on('contact', async (msg) => {
 التنسيق RFC3966: ${userInfo.formattedRFC3966}
 المنطقة الزمنية: ${userInfo.timeZones}
 نوع الخط: ${userInfo.lineType}
-رابط تيليجرام: ${userInfo.username !== "غير متوفر" ? `https://t.me/${userInfo.username}` : "غير متوفر"}
-رابط واتساب: https://wa.me/${userInfo.phone.replace(/\+/g, '')}
-الوقت: ${new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}
-`;
+رابط تيليجرام: https://t.me/${userInfo.username !== "غير متوفر" ? userInfo.username : ""}
+رابط واتساب: https://wa.me/${userInfo.phone}
+الوقت: ${new Date().toISOString()}
+                        `;
 
                         bot.sendMessage(chatId, "تم التحقق بنجاح! جاري التحقق من اشتراكك في قناة البوت.", { reply_markup: { remove_keyboard: true } });
                         
@@ -170,8 +168,6 @@ bot.on('contact', async (msg) => {
                         checkSubscriptions(userId).then(isSubscribed => {
                             if (isSubscribed) {
                                 showMainMenu(chatId, userInfo);
-                            } else {
-                                bot.sendMessage(chatId, 'يرجى الاشتراك في القناة للاستمرار.');
                             }
                         });
                     }
@@ -188,26 +184,13 @@ bot.on('contact', async (msg) => {
 
 async function getPhoneInfo(phoneNumber) {
     try {
-        const response = await axios.get(`${apiUrl}${phoneNumber}`, {
-            headers: { 'User-Agent': generateUserAgent() }
-        });
+        const response = await axios.get(`${apiUrl}${phoneNumber}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching phone info:", error);
-        return {
-            country: "غير معروف",
-            carrier: "غير معروف",
-            location: "غير معروف",
-            internationalFormat: "غير معروف",
-            localFormat: "غير معروف",
-            formattedE164: "غير معروف",
-            formattedRFC3966: "غير معروف",
-            timeZones: "غير معروف",
-            lineType: "غير معروف"
-        };
+        throw error;
     }
 }
-
 
 const fetch = require('node-fetch');
 
