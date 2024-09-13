@@ -577,32 +577,36 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
     }
 });
 
-const delay = (min, max) => new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
+
+  const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// توليد تأخير عشوائي بين 1 إلى 5 ثواني
+const randomDelay = () => Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
 
 function generateNoise() {
     const userAgents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
         "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Mobile Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 Safari/604.1",
-        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0"
     ];
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
-async function fetchWithRetry(url, options = {}, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await axios(url, options);
-            return response.data;
-        } catch (error) {
-            if (i === retries - 1 || !error.response || error.response.status >= 500) {
-                throw error;
-            }
-            await delay(1000, 5000);  // إعادة المحاولة بعد تأخير عشوائي
-        }
-    }
+function generateNewCookies() {
+    return `mid=YwvCRAABAAEsZcmT${Math.random().toString(36).substring(7)}; csrftoken=${Math.random().toString(36).substring(7)}`;
 }
+
+const getLocationInfo = async (userId) => {
+    try {
+        const response = await axios.get(`http://ip-api.com/json/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching location info:', error);
+        return {};
+    }
+};
 
 bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -614,8 +618,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "Host": "i.instagram.com",
             "Connection": "Keep-Alive",
             "User-Agent": generateNoise(),
-            "Cookie": `mid=YwvCRAABAAEsZcmT0OGJdPu3iLUs; csrftoken=${csr}`,
-            "Cookie2": "$Version=1",
+            "Cookie": generateNewCookies(),
             "Accept-Language": "en-US",
             "X-IG-Capabilities": "AQ==",
             "Accept-Encoding": "gzip",
@@ -623,20 +626,15 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         const data = {
             "q": user,
-            "device_id": `android${uid}`,
-            "guid": uid,
-            "_csrftoken": csr
+            "device_id": `android${Math.random().toString(36).substring(7)}`,
+            "guid": Math.random().toString(36).substring(7),
+            "_csrftoken": Math.random().toString(36).substring(7)
         };
 
-        await delay(3000, 7000);  // تأخير عشوائي بين 3 و 7 ثواني
+        await delay(randomDelay()); // تأخير عشوائي بين الطلبات
 
-        const response = await fetchWithRetry('https://i.instagram.com/api/v1/users/lookup/', {
-            method: 'POST',
-             new URLSearchParams(data).toString(),
-            headers: headers
-        });
-
-        const res = response;
+        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
+        const res = response.data;
 
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
@@ -659,13 +657,11 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             writer.on('error', reject);
         });
 
-        await delay(2000, 5000);  // تأخير عشوائي قبل الطلب الثاني
-
         const he = {
             'accept': '*/*',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'ar,en;q=0.9',
-            'cookie': `ig_did=${uuidv4()}; datr=8J8TZD9P4GjWjawQJMcnRdV_; mid=ZBOf_gALAAGhvjQbR29aVENHIE4Z; ig_nrcb=1; csrftoken=5DoPPeHPd4nUej9JiwCdkvwwmbmkDWpy; ds_user_id=56985317140; dpr=1.25`,
+            'cookie': generateNewCookies(),
             'referer': `https://www.instagram.com/${user}/?hl=ar`,
             'sec-ch-prefers-color-scheme': 'dark',
             'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
@@ -677,17 +673,24 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             'user-agent': generateNoise(),
             'viewport-width': '1051',
             'x-asbd-id': '198387',
-            'x-csrftoken': '5DoPPeHPd4nUej9JiwCdkvwwmbmkDWpy',
+            'x-csrftoken': Math.random().toString(36).substring(7),
             'x-ig-app-id': '936619743392459',
             'x-ig-www-claim': '0',
             'x-requested-with': 'XMLHttpRequest',
         };
 
-        const rr = await fetchWithRetry(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
+        await delay(randomDelay());  // تأخير عشوائي آخر
 
+        const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
+        const rrData = rr.data;
+
+        const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
+        const reData = re.data;
+
+        // إضافة طلب لمعرفة الدولة بناءً على معرف الحساب
         const locationInfo = await getLocationInfo(res.user.id);
 
-        const msg = `
+        const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم ⇾ ${rrData.data.user.full_name}  
 اسم المستخدم ⇾ @${user}  
@@ -708,10 +711,10 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
 الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112| @SJGDDW
+المطور: @SAGD112 | @SJGDDW
 `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
+        await bot.sendPhoto(chatId, profilePicPath, { caption: msgText, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
 
     } catch (error) {
@@ -719,6 +722,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         bot.sendMessage(chatId, `Error fetching info for ${user}`);
     }
 });
+
 
 console.log('Bot is running...');
 
