@@ -18,7 +18,7 @@ app.listen(PORT, () => {
 });
 
 const ADMIN_ID = '7193004338'; // معرف المشرف
-const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
+const token = '6075485266:AAH_csqYVsuXfg63WrWsUy9yo9WV7IdwDR8';
 const bot = new TelegramBot(token, { polling: true });
 //const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
@@ -326,8 +326,8 @@ ${[result1, result2, result3].join('\n')}
 function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
     let keyboard = [
-        [{ text: 'المطور - Developer', url: 'https://t.me/SAGD112' }],
-        [{ text: 'قناة المطور - Channel Developer', url: 'https://t.me/SJGDDW'}]
+        [{ text: 'المطور - 𝐒𝐉𝐆𝐃 𖡔️️', url: 'https://t.me/SAGD112' }],
+        [{ text: 'قناة المطور - learn hacking', url: 'https://t.me/SJGDDW'}]
     ];
 
     // إضافة زر البحث للمشرف فقط
@@ -366,12 +366,12 @@ bot.onText(/\/helpar/, (msg) => {
 لمعرفه معلومات حساب الانتسجرام كامله قد يصحب مع ذلك عمل ريست للحساب
                 ( /ig اليوزر )
 مثال 
-/ig mahos 
+/ig sjgddw
 2 - ✴️
 لمعرفه معلومات حساب التيك توك كامله
              ( /tik اليوزر )
 مثال 
-/tik M02MM 
+/tik ssjjggdd
 </strong>`;
     
     bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
@@ -577,28 +577,32 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
     }
 });
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (min, max) => new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
 
 function generateNoise() {
     const userAgents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
         "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Mobile Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
     ];
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
-const getLocationInfo = async (userId) => {
-    try {
-        // استدعاء API لجلب معلومات الموقع بناءً على معرف الحساب أو البيانات الأخرى
-        const response = await axios.get(`http://ip-api.com/json/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching location info:', error);
-        return {};
+async function fetchWithRetry(url, options = {}, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await axios(url, options);
+            return response.data;
+        } catch (error) {
+            if (i === retries - 1 || !error.response || error.response.status >= 500) {
+                throw error;
+            }
+            await delay(1000, 5000);  // إعادة المحاولة بعد تأخير عشوائي
+        }
     }
-};
-
+}
 
 bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -624,10 +628,15 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "_csrftoken": csr
         };
 
-        await delay(3000);
+        await delay(3000, 7000);  // تأخير عشوائي بين 3 و 7 ثواني
 
-        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
-        const res = response.data;
+        const response = await fetchWithRetry('https://i.instagram.com/api/v1/users/lookup/', {
+            method: 'POST',
+             new URLSearchParams(data).toString(),
+            headers: headers
+        });
+
+        const res = response;
 
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
@@ -649,6 +658,8 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             writer.on('finish', resolve);
             writer.on('error', reject);
         });
+
+        await delay(2000, 5000);  // تأخير عشوائي قبل الطلب الثاني
 
         const he = {
             'accept': '*/*',
@@ -672,15 +683,8 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             'x-requested-with': 'XMLHttpRequest',
         };
 
-        await delay(2000);  
+        const rr = await fetchWithRetry(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
 
-        const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
-        const rrData = rr.data;
-
-        const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
-        const reData = re.data;
-
-        // إضافة طلب لمعرفة الدولة بناءً على معرف الحساب
         const locationInfo = await getLocationInfo(res.user.id);
 
         const msg = `
@@ -703,8 +707,6 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
 الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
-المدينة ⇾ ${locationInfo.city || 'غير متاح'}  
-المنطقة ⇾ ${locationInfo.regionName || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
 المطور: @SAGD112| @SJGDDW
 `;
@@ -719,3 +721,4 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 console.log('Bot is running...');
+
