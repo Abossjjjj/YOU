@@ -1,30 +1,29 @@
 const axios = require('axios');
 const uuid = require('uuid');
 const crypto = require('crypto');
-const sqlite3 = require('sqlite3').verbose();
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-    res.send('Bot is running...');
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+const fs = require('fs');
+const userAgent = require('user-agent');
 
 // Helper functions
 function generateUserAgent() {
-    // Implement a user agent generator or use a library
-    return 'Instagram 100.0.0.17.129 Android (29/10; 420dpi; 1080x2129; samsung; SM-M205F; m20lte; exynos7904; en_GB; 161478664)';
+    return userAgent.generate();
 }
 
 function tokenHex(size) {
     return crypto.randomBytes(size).toString('hex');
 }
 
-// Main function
+async function GetInfoInsta(user) {
+    // Implement this function to get Instagram user info
+    // For now, returning a mock object
+    return {
+        id: '12345678',
+        followers: '1000',
+        following: '500',
+        posts: '100'
+    };
+}
+
 async function getInstagramInfo(token, ID) {
     const uid = uuid.v4();
     const csr = tokenHex(8).repeat(2);
@@ -44,7 +43,7 @@ async function getInstagramInfo(token, ID) {
         'X-IG-Connection-Type': 'WIFI',
         'X-IG-Capabilities': '3brTvw==',
         'X-IG-App-ID': '567067343352427',
-        'User-Agent': generateUserAgent(),
+        'User-Agent': 'Instagram 100.0.0.17.129 Android (29/10; 420dpi; 1080x2129; samsung; SM-M205F; m20lte; exynos7904; en_GB; 161478664)',
         'Accept-Language': 'en-GB, en-US',
         'Cookie': 'mid=ZVfGvgABAAGoQqa7AY3mgoYBV1nP; csrftoken=9y3N5kLqzialQA7z96AMiyAKLMBWpqVj',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -52,6 +51,7 @@ async function getInstagramInfo(token, ID) {
         'Host': 'i.instagram.com',
         'X-FB-HTTP-Engine': 'Liger',
         'Connection': 'keep-alive',
+        'Content-Length': '356',
     };
 
     const data = {
@@ -61,7 +61,7 @@ async function getInstagramInfo(token, ID) {
 
     try {
         const res = await axios.post('https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/', data, { headers });
-        const rest = res.data.status === 'ok' ? res.data.email : 'Bad Request!';
+        const rest = res.data.status === 'ok' ? res.data.email : 'Band Requests!';
 
         const user = email.split('@')[0];
         const heada = {
@@ -86,7 +86,6 @@ async function getInstagramInfo(token, ID) {
         const kidResponse = await axios.post('https://i.instagram.com/api/v1/users/lookup/', datai, { headers: heada });
         const kid = kidResponse.data;
 
-        // Extract information from kid
         const id = kid.user?.pk || "";
         const prv = kid.user?.is_private || "";
         const ph = kid.has_valid_phone || "";
@@ -96,20 +95,16 @@ async function getInstagramInfo(token, ID) {
         const phn = kid.obfuscated_phone || "";
         const name = kid.user?.full_name || "";
 
-        // Download profile picture
         if (kid.user?.profile_pic_url) {
             const profilePicResponse = await axios.get(kid.user.profile_pic_url, { responseType: 'arraybuffer' });
             fs.writeFileSync(`${user}.jpg`, profilePicResponse.data);
         }
 
-        // Get additional info (implement GetInfoInsta function or use an appropriate API)
         const Response = await GetInfoInsta(user);
-
         const fols = Response.followers || "";
         const folg = Response.following || "";
         const po = Response.posts || "";
 
-        // Get account creation date
         let da = 'No Date';
         try {
             const dateResponse = await axios.get(`https://o7aa.pythonanywhere.com/?id=${id}`);
@@ -118,7 +113,6 @@ async function getInstagramInfo(token, ID) {
             console.error('Error fetching date:', error);
         }
 
-        // Prepare the message
         const tlg = `
 ________main Info_______
 [+] Email ==> ${email}
@@ -144,7 +138,6 @@ _______BEST Dev_________
 
         console.log(tlg);
 
-        // Send message and photo to Telegram
         await sendPhotoWithCaption(token, ID, `${user}.jpg`, tlg);
 
     } catch (error) {
@@ -152,7 +145,6 @@ _______BEST Dev_________
     }
 }
 
-// Helper functions for Telegram bot
 async function sendMessage(token, chat_id, text) {
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
     await axios.post(url, { chat_id, text });
