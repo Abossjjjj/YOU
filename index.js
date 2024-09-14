@@ -11,8 +11,8 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-rl.question('Enter Token: ', (token) => {
-    rl.question('Enter ID: ', async (ID) => {
+const token = '7463685279:AAEtkWr1SqOQzUL5VAPK_rF-ZLtzEuO-pVQ'; // ضع هنا التوكن الخاص بك
+const ID = '7193004338';     // ضع هنا الـ ID الخاص بك
 
         // Generate unique identifiers
         const uid = uuidv4();
