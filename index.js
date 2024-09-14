@@ -691,11 +691,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "Cookie": generateNewCookies()
         };
 
-       await delay(randomDelay());
-
-        const profilePicUrl = res.user.profile_pic_url;
-        const profilePicPath = path.join(__dirname, `${user}.jpg`);
-        const writer = fs.createWriteStream(profilePicPath);
+        await delay(randomDelay());
 
         const res = await makeRequest(
             `https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`,
@@ -709,7 +705,11 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         }
 
         const userData = res.data.user;
-        
+        const profilePicUrl = userData.profile_pic_url;  // تأكد من استخدام res.data.user
+
+        const profilePicPath = path.join(__dirname, `${user}.jpg`);
+        const writer = fs.createWriteStream(profilePicPath);
+
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم: ${userData.full_name}
@@ -726,15 +726,13 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 المطور: @SAGD112 | @SJGDDW
         `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
+        await bot.sendPhoto(chatId, profilePicPath, { caption: msgText, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
-
     } catch (error) {
         console.error('Error:', error.message);
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
 });
-
 // أمر للتبديل بين استخدام البروكسي وعدم استخدامه
 bot.onText(/\/sjgd/, (msg) => {
     useProxy = !useProxy;
