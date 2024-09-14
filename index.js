@@ -709,18 +709,26 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
 
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
-الاسم: ${userData.full_name}
-اسم المستخدم: @${userData.username}
-المعرف: ${userData.id}
-المتابعين: ${userData.edge_followed_by.count}
-المتابَعون: ${userData.edge_follow.count}
-المنشورات: ${userData.edge_owner_to_timeline_media.count}
-السيرة الذاتية: ${userData.biography || 'غير متاح'}
-الرابط: https://www.instagram.com/${userData.username}
-حساب موثق: ${userData.is_verified ? 'نعم' : 'لا'}
-حساب خاص: ${userData.is_private ? 'نعم' : 'لا'}
-⋘─────━*معلومات*━─────⋙
-المطور: @SAGD112 | @SJGDDW
+الاسم ⇾ ${userData.full_name}  
+اسم المستخدم ⇾ @${user}  
+المعرف ⇾ ${userData.id}  
+المتابعين ⇾ ${userData.edge_followed_by.count}  
+المتابَعون ⇾ ${userData.edge_follow.count}  
+السيرة الذاتية ⇾ ${userData.biography || 'غير متاح'}  
+التاريخ ⇾ ${new Date().toLocaleDateString()}  
+الرابط ⇾ https://www.instagram.com/${user}  
+البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
+الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
+الخاص ⇾ ${userData.is_private ? 'نعم' : 'لا'}  
+تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
+إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
+الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
+حساب موثق ⇾ ${userData.is_verified ? 'نعم' : 'لا'}  
+الدولة ⇾ ${res.locationInfo?.country || 'غير متاح'}  
+⋘─────━*معلومات*━─────⋙  
+المطور: @SAGD112| @SJGDDW
         `;
 
         // إرسال الصورة الشخصية مع النص في نفس الوقت
