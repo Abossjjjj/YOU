@@ -2,6 +2,23 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const FormData = require('form-data');
+const app = express();
+
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Bot is running...');
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+// Ping to keep the server alive
+setInterval(() => {
+    http.get('https://stream-denim-regnosaurus.glitch.me/:' + PORT);
+}, 300000); // Ping every 5 minutes
 
 // ضع التوكن الخاص بالبوت هنا
 const token = '7463685279:AAEtkWr1SqOQzUL5VAPK_rF-ZLtzEuO-pVQ';
