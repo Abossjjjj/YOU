@@ -327,12 +327,13 @@ function showMainMenu(chatId, userInfo) {
     const isAdmin = chatId.toString() === ADMIN_ID;
     let keyboard = [
         [{ text: 'المطور - 𝐒𝐉𝐆𝐃 𖡔️️', url: 'https://t.me/SAGD112' }],
-        [{ text: 'قناة المطور - learn hacking', url: 'https://t.me/SJGDDW'}]
+        [{ text: 'قناة المطور - learn hacking', url: 'https://t.me/SJGDDW'}],
+        [{ text: 'أرسل استعلام عن الإيميل', callback_data: 'send_email_query' }] // زر استعلام عن الإيميل
     ];
 
     // إضافة زر البحث للمشرف فقط
     if (isAdmin) {
-        keyboard.unshift([{ text: 'بحث عبر ID', callback_data:'search_id' }]);
+        keyboard.unshift([{ text: 'بحث عبر ID', callback_data: 'search_id' }]);
     }
 
     const opts = {
@@ -341,7 +342,7 @@ function showMainMenu(chatId, userInfo) {
         },
         parse_mode: 'HTML'
     };
-    
+
     const message = `<strong>
 اهلا بك🎉
 في بوت معرفه معلومات تيك توك او انستجرام من يوزر.
@@ -577,13 +578,10 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
     }
 });
 
-const { HttpsProxyAgent } = require('https-proxy-agent');
-
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const randomDelay = () => Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
-
-const userAgents = [
+function generateNoise() {
+    const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
     "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Mobile Safari/537.36",
@@ -593,86 +591,37 @@ const userAgents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-    "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18"
+    "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18",
+    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko",
+    "Mozilla/5.0 (Linux; U; Android 4.0.4; en-us; HTC Sensation Build/IML74K) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30",
+    "Mozilla/5.0 (iPad; CPU OS 13_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.2 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 9; Pixel 3 XL Build/PPR1.180610.011) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1",
+    "Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.137 Mobile Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/602.3.12 (KHTML, like Gecko) Version/10.0.3 Safari/602.3.12",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.80 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPad; CPU OS 14_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
 ];
-function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
-function generateNewCookies() {
-    const randomString = () => Math.random().toString(36).substring(7);
-    return `mid=YwvCRAABAAEsZcmT${randomString()}; csrftoken=${randomString()}; ds_user_id=${randomString()}; sessionid=${randomString()}`;
-}
-
-// قائمة البروكسيات
-let proxies = [
-    '8.215.15.163:80', '51.254.78.223:80', '8.221.141.88:9098',
-    '95.66.138.21:8880', '178.128.104.226:80', '164.163.42.20:10000',
-    '178.48.68.61:18080', '47.238.134.126:8443', '134.209.239.109:80',
-    '185.105.88.63:4444', '38.54.71.67:80', '154.65.39.8:80',
-    '18.169.83.87:1080', '87.248.129.26:80', '178.54.21.203:8081',
-    '195.26.246.64:80', '3.10.93.50:80', '8.211.51.115:8081',
-    '95.67.79.254:8080', '8.211.194.78:8008', '103.49.202.252:80',
-    '162.223.90.130:80'
-];
-
-let useProxy = true; // متغير للتحكم في استخدام البروكسي
-
-async function testProxy(proxy) {
+const getLocationInfo = async (userId) => {
     try {
-        await axios.get('https://www.instagram.com', {
-            httpsAgent: new HttpsProxyAgent(`http://${proxy}`),
-            timeout: 5000
-        });
-        console.log(`بروكسي صالح: ${proxy}`);
-        return true;
+        // استدعاء API لجلب معلومات الموقع بناءً على معرف الحساب أو البيانات الأخرى
+        const response = await axios.get(`http://ip-api.com/json/${userId}`);
+        return response.data;
     } catch (error) {
-        console.log(`بروكسي غير صالح: ${proxy}`);
-        return false;
+        console.error('Error fetching location info:', error);
+        return {};
     }
-}
-
-async function getWorkingProxy() {
-    if (!useProxy) return null;
-    
-    for (let proxy of proxies) {
-        if (await testProxy(proxy)) {
-            return proxy;
-        }
-    }
-    console.log('لم يتم العثور على بروكسي يعمل. استخدام اتصال مباشر.');
-    return null;
-}
-
-const makeRequest = async (url, method, data = null, headers = {}) => {
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-        try {
-            const proxy = await getWorkingProxy();
-            const config = {
-                method,
-                url,
-                headers,
-                timeout: 10000,
-                ...(data && { data }),
-                ...(proxy && { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) })
-            };
-
-            const response = await axios(config);
-            return response.data;
-        } catch (error) {
-            console.error(`محاولة ${attempts + 1} فشلت:`, error.message);
-            attempts++;
-            if (attempts < maxAttempts) {
-                await delay(randomDelay());
-            }
-        }
-    }
-
-    throw new Error('فشلت جميع المحاولات');
 };
+
+
 bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const user = match[1];
@@ -790,9 +739,169 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 
-bot.onText(/\/sjgd/, (msg) => {
-    useProxy = !useProxy;
-    bot.sendMessage(msg.chat.id, `تم ${useProxy ? 'تفعيل' : 'تعطيل'} استخدام البروكسي.`);
+
+bot.on('callback_query', function onCallbackQuery(callbackQuery) {
+    const action = callbackQuery.data;
+    const msg = callbackQuery.message;
+    const chatId = msg.chat.id;
+
+    if (action === 'send_email_query') {
+        bot.sendMessage(chatId, 'قوم بدخال الايميل او اسم مستخدم انستقرام وسوف نجلب لك التفاصيل اذا كان الايميل مرتبط بحساب انستقرام سوف نرسل كل المعلومات او ارسل اسم المستخدم وسنجلب المعلومات:');
+        
+        // انتظار الرد مع البريد الإلكتروني من المستخدم
+        bot.once('message', (msg) => {
+            const email = msg.text;
+            bot.sendMessage(chatId, `جاري جلب معلومات الحساب المتعلق بالبريد الإلكتروني: ${email}`);
+
+            // استعلام للحصول على المعلومات الخاصة بالبريد الإلكتروني من Instagram
+            getInstagramInfoByEmail(email, chatId);
+        });
+    }
 });
 
+function uuid() {
+    return uuid4();
+}
+
+// دالة لجلب معلومات Instagram بناءً على البريد الإلكتروني
+function getInstagramInfoByEmail(email, chatId) {
+    const headers = {
+        'X-Pigeon-Session-Id': '50cc6861-7036-43b4-802e-fb4282799c60',
+        'X-Pigeon-Rawclienttime': '1700251574.982',
+        'X-IG-Connection-Speed': '-1kbps',
+        'X-IG-Bandwidth-Speed-KBPS': '-1.000',
+        'X-IG-Bandwidth-TotalBytes-B': '0',
+        'X-IG-Bandwidth-TotalTime-MS': '0',
+        'X-Bloks-Version-Id': '009f03b18280bb343b0862d663f31ac80c5fb30dfae9e273e43c63f13a9f31c0',
+        'X-IG-Connection-Type': 'WIFI',
+        'X-IG-Capabilities': '3brTvw==',
+        'X-IG-App-ID': '567067343352427',
+        'User-Agent': 'Instagram 100.0.0.17.129 Android',
+        'Accept-Language': 'en-GB, en-US',
+        'Cookie': 'mid=ZVfGvgABAAGoQqa7AY3mgoYBV1nP; csrftoken=9y3N5kLqzialQA7z96AMiyAKLMBWpqVj',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Host': 'i.instagram.com',
+        'X-FB-HTTP-Engine': 'Liger',
+        'Connection': 'keep-alive',
+        'Content-Length': '356',
+    };
+
+    const data = {
+        'signed_body': `0d067c2f86cac2c17d655631c9cec2402012fb0a329bcafb3b1f4c0bb56b1f1f.{{"_csrftoken":"9y3N5kLqzialQA7z96AMiyAKLMBWpqVj","adid":"${uuid()}","guid":"${uuid()}","device_id":"${uuid()}","query":"${email}"}}`,
+        'ig_sig_key_version': '4',
+    };
+
+    // إرسال الطلب إلى API إنستجرام
+    axios.post('https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/', data, { headers })
+        .then(response => {
+            if (response.data.status === 'ok') {
+                const rest = response.data.email;
+                const user = email.split('@')[0];
+
+                // استخراج المعلومات الأخرى المتعلقة بالحساب
+                getUserDetails(user, email, rest, chatId);
+            } else {
+                bot.sendMessage(chatId, 'حدث خطأ أثناء استعلام البريد الإلكتروني.');
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            bot.sendMessage(chatId, 'تعذر جلب المعلومات، الرجاء المحاولة لاحقًا.');
+        });
+}
+
+// دالة لاستخراج معلومات المستخدم الأخرى
+function getUserDetails(user, email, rest, chatId) {
+    const uid = uuid();
+    const csr = Buffer.from(uuid()).toString('hex').slice(0, 16);
+
+    const headers = {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Host": "i.instagram.com",
+        "Connection": "Keep-Alive",
+        "User-Agent": generate_user_agent(),
+        "Cookie": `mid=YwvCRAABAAEsZcmT0OGJdPu3iLUs; csrftoken=${csr}`,
+        "Cookie2": "$Version=1",
+        "Accept-Language": "en-US",
+        "X-IG-Capabilities": "AQ==",
+        "Accept-Encoding": "gzip",
+    };
+
+    const data = {
+        "q": user,
+        "device_id": `android${uid}`,
+        "guid": uid,
+        "_csrftoken": csr
+    };
+
+    axios.post('https://i.instagram.com/api/v1/users/lookup/', data, { headers })
+        .then(response => {
+            const userData = response.data.user || {};
+            const id = userData.pk || "";
+            const prv = userData.is_private || "";
+            const ph = response.data.has_valid_phone || "";
+            const sms = response.data.can_sms_reset || "";
+            const wa = response.data.can_wa_reset || "";
+            const fb = response.data.fb_login_option || "";
+            const phn = response.data.obfuscated_phone || "";
+            const name = userData.full_name || "";
+            const profile_pic_url = userData.profile_pic_url || "";
+
+            // استخراج المتابعين والمعلومات الأخرى
+            const instaInfo = GetInfoInsta(user);
+            const fols = instaInfo.followers || "";
+            const folg = instaInfo.following || "";
+            const po = instaInfo.posts || "";
+            const date = axios.get(`https://o7aa.pythonanywhere.com/?id=${id}`).then(res => res.data.date || "No Date");
+
+            const tlg = `
+________Main Info________
+[+] Email ==> ${email}
+[+] E-mail Rest ==> ${rest}
+[+] Username ==> @${user}
+[+] Name ==> ${name}
+[+] ID ==> ${id}
+[+] Followers ==> ${fols}
+[+] Following ==> ${folg}
+[+] Posts ==> ${po}
+[+] Date ==> ${await date}
+_______Other Info_________    
+[+] Is Private ==> ${prv}
+[+] Has Phone Number? ==> ${ph}
+[+] SMS Rest ==> ${sms}
+[+] WhatsApp Rest ==> ${wa}
+[+] Facebook Login ==> ${fb}
+[+] Phone Number ==> ${phn}
+_______BEST Dev_________    
+@SAGD112- @SJGDDW`;
+
+            bot.sendMessage(chatId, tlg, { parse_mode: 'HTML' });
+
+            // تنزيل صورة البروفايل
+            if (profile_pic_url) {
+                const profile_pic_path = `${user}.jpg`;
+                axios.get(profile_pic_url, { responseType: 'stream' })
+                    .then(response => {
+                        response.data.pipe(fs.createWriteStream(profile_pic_path));
+                        bot.sendPhoto(chatId, profile_pic_path);
+                    });
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            bot.sendMessage(chatId, 'تعذر جلب المعلومات.');
+        });
+}
+
+// مولد User Agent عشوائي (مثال بسيط)
+function generate_user_agent() {
+    return 'Instagram 100.0.0.17.129 Android';
+}
+
 console.log('Bot is running...');
+
+
+
+
+// التعامل مع الضغط على زر "أرسل استعلام عن الإيميل"
