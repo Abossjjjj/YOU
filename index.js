@@ -676,76 +676,124 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
 };
 
 
-  bot.onText(/\/ig (.+)/, async (msg, match) => {
+  
+
+        bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const user = match[1];
 
     try {
         const headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Host": "i.instagram.com",
+            "Connection": "Keep-Alive",
             "User-Agent": generateNoise(),
-            "Accept-Language": "en-US,en;q=0.5",
-            "X-IG-APP-ID": "936619743392459",
-            "X-IG-WWW-Claim": "0",
-            "Origin": "https://www.instagram.com",
-            "Connection": "keep-alive",
-            "Referer": "https://www.instagram.com/",
-            "Cookie": generateNewCookies()
+            "Cookie": `mid=YwvCRAABAAEsZcmT0OGJdPu3iLUs; csrftoken=${csr}`,
+            "Cookie2": "$Version=1",
+            "Accept-Language": "en-US",
+            "X-IG-Capabilities": "AQ==",
+            "Accept-Encoding": "gzip",
         };
 
-        await delay(randomDelay());
+        const data = {
+            "q": user,
+            "device_id": `android${uid}`,
+            "guid": uid,
+            "_csrftoken": csr
+        };
 
-        const res = await makeRequest(
-            `https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`,
-            'GET',
-            null,
-            headers
-        );
+        await delay(3000);
 
-        if (!res.data || !res.data.user) {
-            throw new Error('لم يتم العثور على معلومات المستخدم');
+        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
+        const res = response.data;
+
+        if (res.status === 'fail' && res.spam) {
+            throw new Error('Rate limit reached');
         }
 
-        const userData = res.data.user;
+        const profilePicUrl = res.user.profile_pic_url;
+        const profilePicPath = path.join(__dirname, `${user}.jpg`);
+        const writer = fs.createWriteStream(profilePicPath);
 
-        const msgText = `
+        const picResponse = await axios({
+            url: profilePicUrl,
+            method: 'GET',
+            responseType: 'stream'
+        });
+
+        picResponse.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        const he = {
+            'accept': '*/*',
+            'accept-encoding': 'gzip, deflate, br',
+            'accept-language': 'ar,en;q=0.9',
+            'cookie': `ig_did=${uuidv4()}; datr=8J8TZD9P4GjWjawQJMcnRdV_; mid=ZBOf_gALAAGhvjQbR29aVENHIE4Z; ig_nrcb=1; csrftoken=5DoPPeHPd4nUej9JiwCdkvwwmbmkDWpy; ds_user_id=56985317140; dpr=1.25`,
+            'referer': `https://www.instagram.com/${user}/?hl=ar`,
+            'sec-ch-prefers-color-scheme': 'dark',
+            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': generateNoise(),
+            'viewport-width': '1051',
+            'x-asbd-id': '198387',
+            'x-csrftoken': '5DoPPeHPd4nUej9JiwCdkvwwmbmkDWpy',
+            'x-ig-app-id': '936619743392459',
+            'x-ig-www-claim': '0',
+            'x-requested-with': 'XMLHttpRequest',
+        };
+
+        await delay(2000);  
+
+        const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
+        const rrData = rr.data;
+
+        const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
+        const reData = re.data;
+
+        // === تعديل: جلب البريد الإلكتروني والهاتف ===
+        const email = res.obfuscated_email || 'غير متاح';
+        const phone = res.obfuscated_phone || 'غير متاح';
+
+        // === تعديل: باقي المعلومات ===
+        const msg = `
 ⋘─────━*معلومات الحساب*━─────⋙
-الاسم ⇾ ${userData.full_name}  
+الاسم ⇾ ${rrData.data.user.full_name}  
 اسم المستخدم ⇾ @${user}  
-المعرف ⇾ ${userData.id}  
-المتابعين ⇾ ${userData.edge_followed_by.count}  
-المتابَعون ⇾ ${userData.edge_follow.count}  
-السيرة الذاتية ⇾ ${userData.biography || 'غير متاح'}  
-التاريخ ⇾ ${new Date().toLocaleDateString()}  
+المعرف ⇾ ${rrData.data.user.id}  
+المتابعين ⇾ ${rrData.data.user.edge_followed_by.count}  
+المتابَعون ⇾ ${rrData.data.user.edge_follow.count}  
+السيرة الذاتية ⇾ ${rrData.data.user.biography || 'غير متاح'}  
+التاريخ ⇾ ${reData.date || 'غير متاح'}  
 الرابط ⇾ https://www.instagram.com/${user}  
-البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
-الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
-الخاص ⇾ ${userData.is_private ? 'نعم' : 'لا'}  
+البريد الإلكتروني ⇾ ${email}  
+الهاتف ⇾ ${phone}  
+الخاص ⇾ ${res.user.is_private ? 'نعم' : 'لا'}  
 تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
 إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
 إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
 إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
 الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
-حساب موثق ⇾ ${userData.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${res.locationInfo?.country || 'غير متاح'}  
+حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
+الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
 المطور: @SAGD112| @SJGDDW
-        `;
+`;
 
-        // إرسال الصورة الشخصية مع النص في نفس الوقت
-        if (userData.profile_pic_url_hd) {
-            await bot.sendPhoto(chatId, userData.profile_pic_url_hd, { 
-                caption: msgText, 
-                parse_mode: 'HTML' 
-            });
-        } else {
-            await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
-        }
-
+        await bot.sendMessage(chatId, msg, { parse_mode: 'HTML' });
     } catch (error) {
-        console.error('Error:', error.message);
-        bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
+        console.error('Error fetching user data:', error);
+        await bot.sendMessage(chatId, 'حدث خطأ أثناء جلب المعلومات.');
     }
 });
+
 
         
 // أمر للتبديل بين استخدام البروكسي وعدم استخدامه
