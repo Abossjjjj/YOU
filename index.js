@@ -708,30 +708,34 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
-الاسم: ${userData.full_name}
-اسم المستخدم: @${userData.username}
-المعرف: ${userData.id}
-المتابعين: ${userData.edge_followed_by.count}
-المتابَعون: ${userData.edge_follow.count}
-المنشورات: ${userData.edge_owner_to_timeline_media.count}
-السيرة الذاتية: ${userData.biography || 'غير متاح'}
-الرابط: https://www.instagram.com/${userData.username}
-حساب موثق: ${userData.is_verified ? 'نعم' : 'لا'}
-حساب خاص: ${userData.is_private ? 'نعم' : 'لا'}
-⋘─────━*معلومات*━─────⋙
-المطور: @SAGD112 | @SJGDDW
-        `;
+الاسم ⇾ ${rrData.data.user.full_name}  
+اسم المستخدم ⇾ @${user}  
+المعرف ⇾ ${rrData.data.user.id}  
+المتابعين ⇾ ${rrData.data.user.edge_followed_by.count}  
+المتابَعون ⇾ ${rrData.data.user.edge_follow.count}  
+السيرة الذاتية ⇾ ${rrData.data.user.biography || 'غير متاح'}  
+التاريخ ⇾ ${reData.date || 'غير متاح'}  
+الرابط ⇾ https://www.instagram.com/${user}  
+البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
+الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
+الخاص ⇾ ${res.user.is_private ? 'نعم' : 'لا'}  
+تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
+إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
+الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
+حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
+الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
+⋘─────━*معلومات*━─────⋙  
+المطور: @SAGD112| @SJGDDW
+`;
 
-        await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
-
-        // إرسال الصورة الشخصية إذا كانت متاحة
-        if (userData.profile_pic_url_hd) {
-            await bot.sendPhoto(chatId, userData.profile_pic_url_hd);
-        }
+        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
+        fs.unlinkSync(profilePicPath);
 
     } catch (error) {
-        console.error('Error:', error.message);
-        bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
+        console.error(error);
+        bot.sendMessage(chatId, `Error fetching info for ${user}`);
     }
 });
 
