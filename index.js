@@ -596,7 +596,6 @@ const userAgents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
     "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18"
 ];
-
 function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
@@ -607,41 +606,79 @@ function generateNewCookies() {
 }
 
 let proxies = [];
+let workingProxies = new Set();
 
 async function updateProxyList() {
     try {
-        const response = await axios.get('https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt');
+        const response = await axios.get('https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt', { timeout: 10000 });
         proxies = response.data.split('\n').filter(proxy => proxy.trim() !== '');
         console.log(`تم تحديث قائمة البروكسيات. العدد: ${proxies.length}`);
     } catch (error) {
-        console.error('خطأ في تحديث قائمة البروكسيات:', error);
+        console.error('خطأ في تحديث قائمة البروكسيات:', error.message);
     }
 }
 
-// تحديث قائمة البروكسيات كل ساعة
-setInterval(updateProxyList, 60 * 60 * 1000);
+// تحديث قائمة البروكسيات كل 30 دقيقة
+setInterval(updateProxyList, 30 * 60 * 1000);
 
 // تحديث القائمة فوراً عند بدء التشغيل
 updateProxyList();
 
-function getRandomProxy() {
-    if (proxies.length === 0) {
-        console.log('قائمة البروكسيات فارغة. جاري استخدام اتصال مباشر.');
-        return null;
+async function testProxy(proxy) {
+    try {
+        await axios.get('https://www.instagram.com', {
+            httpsAgent: new HttpsProxyAgent(`http://${proxy}`),
+            timeout: 5000
+        });
+        workingProxies.add(proxy);
+        return true;
+    } catch (error) {
+        workingProxies.delete(proxy);
+        return false;
     }
-    return proxies[Math.floor(Math.random() * proxies.length)];
 }
 
-const getLocationInfo = async (userId) => {
-    try {
-        const proxy = getRandomProxy();
-        const config = proxy ? { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) } : {};
-        const response = await axios.get(`http://ip-api.com/json/${userId}`, config);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching location info:', error);
-        return {};
+async function getWorkingProxy() {
+    if (workingProxies.size > 0) {
+        return Array.from(workingProxies)[Math.floor(Math.random() * workingProxies.size)];
     }
+    
+    for (let proxy of proxies) {
+        if (await testProxy(proxy)) {
+            return proxy;
+        }
+    }
+    
+    console.log('لم يتم العثور على بروكسي يعمل. استخدام اتصال مباشر.');
+    return null;
+}
+
+const makeRequest = async (url, method, data = null, headers = {}) => {
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+        try {
+            const proxy = await getWorkingProxy();
+            const config = {
+                method,
+                url,
+                headers,
+                timeout: 10000,
+                ...(data && { data }),
+                ...(proxy && { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) })
+            };
+
+            const response = await axios(config);
+            return response.data;
+        } catch (error) {
+            console.error(`محاولة ${attempts + 1} فشلت:`, error.message);
+            attempts++;
+            await delay(randomDelay());
+        }
+    }
+
+    throw new Error('فشلت جميع المحاولات');
 };
 
 bot.onText(/\/ig (.+)/, async (msg, match) => {
@@ -673,27 +710,18 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         await delay(randomDelay());
 
-        const proxy = getRandomProxy();
-        const axiosConfig = {
-            headers: headers
-        };
-        
-        if (proxy) {
-            axiosConfig.httpsAgent = new HttpsProxyAgent(`http://${proxy}`);
-        }
-
-        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', 
-            new URLSearchParams(data).toString(), 
-            axiosConfig
+        const res = await makeRequest(
+            'https://i.instagram.com/api/v1/users/lookup/',
+            'POST',
+            new URLSearchParams(data).toString(),
+            headers
         );
-        
-        const res = response.data;
 
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
         }
 
-           const locationInfo = await getLocationInfo(res.user.id);
+     const locationInfo = await getLocationInfo(res.user.id);
 
         const msg = `
 ⋘─────━*معلومات الحساب*━─────⋙
