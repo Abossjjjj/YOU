@@ -739,6 +739,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 });
 
 
+// استبدال this with your bot instance
 
 bot.on('callback_query', function onCallbackQuery(callbackQuery) {
     const action = callbackQuery.data;
@@ -746,27 +747,20 @@ bot.on('callback_query', function onCallbackQuery(callbackQuery) {
     const chatId = msg.chat.id;
 
     if (action === 'send_email_query') {
-        bot.sendMessage(chatId, 'قوم بدخال الايميل او اسم مستخدم انستقرام وسوف نجلب لك التفاصيل اذا كان الايميل مرتبط بحساب انستقرام سوف نرسل كل المعلومات او ارسل اسم المستخدم وسنجلب المعلومات:');
+        bot.sendMessage(chatId, 'قم بإدخال الإيميل أو اسم مستخدم إنستقرام وسوف نجلب لك التفاصيل. إذا كان الإيميل مرتبط بحساب إنستقرام سنرسل لك كل المعلومات، أو أرسل اسم المستخدم وسنجلب المعلومات:');
         
-        // انتظار الرد مع البريد الإلكتروني من المستخدم
-        bot.once('message', (msg) => {
+        bot.once('message', async (msg) => {
             const email = msg.text;
             bot.sendMessage(chatId, `جاري جلب معلومات الحساب المتعلق بالبريد الإلكتروني: ${email}`);
-
-            // استعلام للحصول على المعلومات الخاصة بالبريد الإلكتروني من Instagram
-            getInstagramInfoByEmail(email, chatId);
+            await getInstagramInfoByEmail(email, chatId);
         });
     }
 });
 
-function uuid() {
-    return uuid4();
-}
-
 // دالة لجلب معلومات Instagram بناءً على البريد الإلكتروني
-function getInstagramInfoByEmail(email, chatId) {
+async function getInstagramInfoByEmail(email, chatId) {
     const headers = {
-        'X-Pigeon-Session-Id': '50cc6861-7036-43b4-802e-fb4282799c60',
+        'X-Pigeon-Session-Id': uuidv4(),
         'X-Pigeon-Rawclienttime': '1700251574.982',
         'X-IG-Connection-Speed': '-1kbps',
         'X-IG-Bandwidth-Speed-KBPS': '-1.000',
@@ -788,33 +782,31 @@ function getInstagramInfoByEmail(email, chatId) {
     };
 
     const data = {
-        'signed_body': `0d067c2f86cac2c17d655631c9cec2402012fb0a329bcafb3b1f4c0bb56b1f1f.{{"_csrftoken":"9y3N5kLqzialQA7z96AMiyAKLMBWpqVj","adid":"${uuid()}","guid":"${uuid()}","device_id":"${uuid()}","query":"${email}"}}`,
+        'signed_body': `0d067c2f86cac2c17d655631c9cec2402012fb0a329bcafb3b1f4c0bb56b1f1f.{{"_csrftoken":"9y3N5kLqzialQA7z96AMiyAKLMBWpqVj","adid":"${uuidv4()}","guid":"${uuidv4()}","device_id":"${uuidv4()}","query":"${email}"}}`,
         'ig_sig_key_version': '4',
     };
 
-    // إرسال الطلب إلى API إنستجرام
-    axios.post('https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/', data, { headers })
-        .then(response => {
-            if (response.data.status === 'ok') {
-                const rest = response.data.email;
-                const user = email.split('@')[0];
+    try {
+        const response = await axios.post('https://i.instagram.com/api/v1/accounts/send_recovery_flow_email/', data, { headers });
+        
+        if (response.data.status === 'ok') {
+            const rest = response.data.email;
+            const user = email.split('@')[0];
 
-                // استخراج المعلومات الأخرى المتعلقة بالحساب
-                getUserDetails(user, email, rest, chatId);
-            } else {
-                bot.sendMessage(chatId, 'حدث خطأ أثناء استعلام البريد الإلكتروني.');
-            }
-        })
-        .catch(error => {
-            console.error(error);
-            bot.sendMessage(chatId, 'تعذر جلب المعلومات، الرجاء المحاولة لاحقًا.');
-        });
+            await getUserDetails(user, email, rest, chatId);
+        } else {
+            bot.sendMessage(chatId, 'حدث خطأ أثناء استعلام البريد الإلكتروني.');
+        }
+    } catch (error) {
+        console.error(error);
+        bot.sendMessage(chatId, 'تعذر جلب المعلومات، الرجاء المحاولة لاحقًا.');
+    }
 }
 
 // دالة لاستخراج معلومات المستخدم الأخرى
-function getUserDetails(user, email, rest, chatId) {
-    const uid = uuid();
-    const csr = Buffer.from(uuid()).toString('hex').slice(0, 16);
+async function getUserDetails(user, email, rest, chatId) {
+    const uid = uuidv4();
+    const csr = Buffer.from(uuidv4()).toString('hex').slice(0, 16);
 
     const headers = {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -822,7 +814,6 @@ function getUserDetails(user, email, rest, chatId) {
         "Connection": "Keep-Alive",
         "User-Agent": generate_user_agent(),
         "Cookie": `mid=YwvCRAABAAEsZcmT0OGJdPu3iLUs; csrftoken=${csr}`,
-        "Cookie2": "$Version=1",
         "Accept-Language": "en-US",
         "X-IG-Capabilities": "AQ==",
         "Accept-Encoding": "gzip",
@@ -835,27 +826,28 @@ function getUserDetails(user, email, rest, chatId) {
         "_csrftoken": csr
     };
 
-    axios.post('https://i.instagram.com/api/v1/users/lookup/', data, { headers })
-        .then(response => {
-            const userData = response.data.user || {};
-            const id = userData.pk || "";
-            const prv = userData.is_private || "";
-            const ph = response.data.has_valid_phone || "";
-            const sms = response.data.can_sms_reset || "";
-            const wa = response.data.can_wa_reset || "";
-            const fb = response.data.fb_login_option || "";
-            const phn = response.data.obfuscated_phone || "";
-            const name = userData.full_name || "";
-            const profile_pic_url = userData.profile_pic_url || "";
+    try {
+        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', data, { headers });
+        const userData = response.data.user || {};
+        const id = userData.pk || "";
+        const prv = userData.is_private || "";
+        const ph = response.data.has_valid_phone || "";
+        const sms = response.data.can_sms_reset || "";
+        const wa = response.data.can_wa_reset || "";
+        const fb = response.data.fb_login_option || "";
+        const phn = response.data.obfuscated_phone || "";
+        const name = userData.full_name || "";
+        const profile_pic_url = userData.profile_pic_url || "";
 
-            // استخراج المتابعين والمعلومات الأخرى
-            const instaInfo = GetInfoInsta(user);
-            const fols = instaInfo.followers || "";
-            const folg = instaInfo.following || "";
-            const po = instaInfo.posts || "";
-            const date = axios.get(`https://o7aa.pythonanywhere.com/?id=${id}`).then(res => res.data.date || "No Date");
+        const instaInfo = await GetInfoInsta(user);
+        const fols = instaInfo.followers || "";
+        const folg = instaInfo.following || "";
+        const po = instaInfo.posts || "";
 
-            const tlg = `
+        const dateRes = await axios.get(`https://o7aa.pythonanywhere.com/?id=${id}`);
+        const date = dateRes.data.date || "No Date";
+
+        const tlg = `
 ________Main Info________
 [+] Email ==> ${email}
 [+] E-mail Rest ==> ${rest}
@@ -865,7 +857,7 @@ ________Main Info________
 [+] Followers ==> ${fols}
 [+] Following ==> ${folg}
 [+] Posts ==> ${po}
-[+] Date ==> ${await date}
+[+] Date ==> ${date}
 _______Other Info_________    
 [+] Is Private ==> ${prv}
 [+] Has Phone Number? ==> ${ph}
@@ -876,32 +868,23 @@ _______Other Info_________
 _______BEST Dev_________    
 @SAGD112- @SJGDDW`;
 
-            bot.sendMessage(chatId, tlg, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, tlg, { parse_mode: 'HTML' });
 
-            // تنزيل صورة البروفايل
-            if (profile_pic_url) {
-                const profile_pic_path = `${user}.jpg`;
-                axios.get(profile_pic_url, { responseType: 'stream' })
-                    .then(response => {
-                        response.data.pipe(fs.createWriteStream(profile_pic_path));
-                        bot.sendPhoto(chatId, profile_pic_path);
-                    });
-            }
-        })
-        .catch(error => {
-            console.error(error);
-            bot.sendMessage(chatId, 'تعذر جلب المعلومات.');
-        });
+        if (profile_pic_url) {
+            const profile_pic_path = `${user}.jpg`;
+            const picResponse = await axios.get(profile_pic_url, { responseType: 'stream' });
+            picResponse.data.pipe(fs.createWriteStream(profile_pic_path));
+            bot.sendPhoto(chatId, profile_pic_path);
+        }
+    } catch (error) {
+        console.error(error);
+        bot.sendMessage(chatId, 'تعذر جلب المعلومات.');
+    }
 }
 
-// مولد User Agent عشوائي (مثال بسيط)
+// مولد User Agent عشوائي
 function generate_user_agent() {
     return 'Instagram 100.0.0.17.129 Android';
 }
 
 console.log('Bot is running...');
-
-
-
-
-// التعامل مع الضغط على زر "أرسل استعلام عن الإيميل"
