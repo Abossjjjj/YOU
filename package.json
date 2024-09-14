@@ -27,7 +27,8 @@
     "node-rsa": "^1.1.1",
     "jsonwebtoken": "^9.0.0",
     "random-useragent": "^0.5.0",
-    "user-agents": "^1.0.0"
+    "user-agents": "^1.0.0",
+    "https-proxy-agent": "^5.0.1"
   },
   "engines": {
     "node": ">=14.0.0"
