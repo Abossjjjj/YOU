@@ -18,7 +18,7 @@ app.listen(PORT, () => {
 });
 
 const ADMIN_ID = '7193004338'; // معرف المشرف
-const token = '6075485266:AAH_csqYVsuXfg63WrWsUy9yo9WV7IdwDR8';
+const token = '7463685279:AAEtkWr1SqOQzUL5VAPK_rF-ZLtzEuO-pVQ';
 const bot = new TelegramBot(token, { polling: true });
 //const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
