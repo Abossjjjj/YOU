@@ -706,38 +706,31 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
         }
 
         const userData = res.data.user;
-        
+
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
-الاسم ⇾ ${rrData.data.user.full_name}  
-اسم المستخدم ⇾ @${user}  
-المعرف ⇾ ${rrData.data.user.id}  
-المتابعين ⇾ ${rrData.data.user.edge_followed_by.count}  
-المتابَعون ⇾ ${rrData.data.user.edge_follow.count}  
-السيرة الذاتية ⇾ ${rrData.data.user.biography || 'غير متاح'}  
-التاريخ ⇾ ${reData.date || 'غير متاح'}  
-الرابط ⇾ https://www.instagram.com/${user}  
-البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
-الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
-الخاص ⇾ ${res.user.is_private ? 'نعم' : 'لا'}  
-تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
-إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
-إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
-إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
-الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
-حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
-⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112| @SJGDDW
-`;
+الاسم: ${userData.full_name}
+اسم المستخدم: @${userData.username}
+المعرف: ${userData.id}
+المتابعين: ${userData.edge_followed_by.count}
+المتابَعون: ${userData.edge_follow.count}
+المنشورات: ${userData.edge_owner_to_timeline_media.count}
+السيرة الذاتية: ${userData.biography || 'غير متاح'}
+الرابط: https://www.instagram.com/${userData.username}
+حساب موثق: ${userData.is_verified ? 'نعم' : 'لا'}
+حساب خاص: ${userData.is_private ? 'نعم' : 'لا'}
+⋘─────━*معلومات*━─────⋙
+المطور: @SAGD112 | @SJGDDW
+        `;
 
-        
-
-        await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
-
-        // إرسال الصورة الشخصية إذا كانت متاحة
+        // إرسال الصورة الشخصية مع النص في نفس الوقت
         if (userData.profile_pic_url_hd) {
-            await bot.sendPhoto(chatId, userData.profile_pic_url_hd);
+            await bot.sendPhoto(chatId, userData.profile_pic_url_hd, { 
+                caption: msgText, 
+                parse_mode: 'HTML' 
+            });
+        } else {
+            await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
         }
 
     } catch (error) {
@@ -745,6 +738,8 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
 });
+
+        
 // أمر للتبديل بين استخدام البروكسي وعدم استخدامه
 bot.onText(/\/sjgd/, (msg) => {
     useProxy = !useProxy;
