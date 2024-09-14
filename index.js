@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const token = '7463685279:AAEtkWr1SqOQzUL5VAPK_rF-ZLtzEuO-pVQ';
+const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
 const bot = new TelegramBot(token, { polling: true });
 
 function generateNoise() {
@@ -45,78 +45,25 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         const headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Host": "i.instagram.com",
-            "Connection": "Keep-Alive",
             "User-Agent": generateNoise(),
             "Cookie": cookies,
-            "Cookie2": "$Version=1",
-            "Accept-Language": "en-US",
-            "X-IG-Capabilities": "3brTvw==",
-            "X-IG-Connection-Type": "WIFI",
-            "X-IG-App-ID": "567067343352427",
-            "Accept-Encoding": "gzip",
-        };
-
-        const data = {
-            "username": user,
-            "device_id": `android-${uid}`,
-            "guid": uid,
-            "_csrftoken": csr
+            "X-IG-App-ID": "936619743392459",
+            "X-IG-WWW-Claim": "0",
         };
 
         await delay(3000);
 
-        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
-        const res = response.data;
+        const response = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers });
+        const userData = response.data.data.user;
 
-        if (res.status === 'fail' && res.spam) {
-            throw new Error('Rate limit reached');
+        if (!userData) {
+            throw new Error('User not found');
         }
 
-        const profilePicUrl = res.user.profile_pic_url;
-        const writer = fs.createWriteStream(path.join(__dirname, 'profile_pic.jpg'));
+        const reResponse = await axios.get(`https://o7aa.pythonanywhere.com/?id=${userData.id}`);
+        const reData = reResponse.data;
 
-        const picResponse = await axios({
-            url: profilePicUrl,
-            method: 'GET',
-            responseType: 'stream'
-        });
-
-        picResponse.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        const he = {
-            'accept': '*/*',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'ar,en;q=0.9',
-            'cookie': cookies,
-            'referer': `https://www.instagram.com/${user}/?hl=ar`,
-            'sec-ch-prefers-color-scheme': 'dark',
-            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': generateNoise(),
-            'viewport-width': '1051',
-            'x-asbd-id': '198387',
-            'x-csrftoken': csr,
-            'x-ig-app-id': '936619743392459',
-            'x-ig-www-claim': '0',
-            'x-requested-with': 'XMLHttpRequest',
-        };
-
-       const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
-        const rrData = rr.data;
-
-        const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
-        const reData = re.data;
-const msgText = `
+        const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم ⇾ ${userData.full_name}  
 اسم المستخدم ⇾ @${user}  
@@ -126,21 +73,20 @@ const msgText = `
 السيرة الذاتية ⇾ ${userData.biography || 'غير متاح'}  
 التاريخ ⇾ ${new Date().toLocaleDateString()}  
 الرابط ⇾ https://www.instagram.com/${user}  
-البريد الإلكتروني ⇾ ${obfuscatedEmail}  
-الهاتف ⇾ ${obfuscatedPhone}  
+البريد الإلكتروني ⇾ ${reData.email || 'غير متاح'}  
+الهاتف ⇾ ${reData.phone || 'غير متاح'}  
 الخاص ⇾ ${userData.is_private ? 'نعم' : 'لا'}  
-تسجيل دخول فيسبوك ⇾ ${fbLoginOption}  
-إعادة ضبط واتساب ⇾ ${canWaReset}  
-إعادة ضبط SMS ⇾ ${canSmsReset}  
-إعادة ضبط البريد الإلكتروني ⇾ ${canEmailReset}  
-الهاتف صالح ⇾ ${hasValidPhone}  
+تسجيل دخول فيسبوك ⇾ ${reData.fb_login_option || 'غير متاح'}  
+إعادة ضبط واتساب ⇾ ${reData.can_wa_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط SMS ⇾ ${reData.can_sms_reset ? 'نعم' : 'غير متاح'}  
+إعادة ضبط البريد الإلكتروني ⇾ ${reData.can_email_reset ? 'نعم' : 'غير متاح'}  
+الهاتف صالح ⇾ ${reData.has_valid_phone ? 'نعم' : 'غير متاح'}  
 حساب موثق ⇾ ${userData.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${country}  
+الدولة ⇾ ${reData.country || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
 المطور: @SAGD112| @SJGDDW
         `;
 
-        // إرسال الصورة الشخصية مع النص في نفس الوقت
         if (userData.profile_pic_url_hd) {
             await bot.sendPhoto(chatId, userData.profile_pic_url_hd, { 
                 caption: msgText, 
