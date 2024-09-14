@@ -582,10 +582,8 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// تحسين توليد التأخير العشوائي
 const randomDelay = () => Math.floor(Math.random() * (10000 - 3000 + 1)) + 3000;
 
-// توسيع قائمة User-Agents
 const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
@@ -603,28 +601,42 @@ function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
-// تحسين توليد الكوكيز
 function generateNewCookies() {
     const randomString = () => Math.random().toString(36).substring(7);
     return `mid=YwvCRAABAAEsZcmT${randomString()}; csrftoken=${randomString()}; ds_user_id=${randomString()}; sessionid=${randomString()}`;
 }
 
-// إضافة قائمة بروكسيات (يجب تحديثها بانتظام)
-const proxies = [
-    'http://proxy1.example.com:8080',
-    'http://proxy2.example.com:8080',
-    'http://proxy3.example.com:8080'
-];
+let proxies = [];
+
+async function updateProxyList() {
+    try {
+        const response = await axios.get('https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt');
+        proxies = response.data.split('\n').filter(proxy => proxy.trim() !== '');
+        console.log(`تم تحديث قائمة البروكسيات. العدد: ${proxies.length}`);
+    } catch (error) {
+        console.error('خطأ في تحديث قائمة البروكسيات:', error);
+    }
+}
+
+// تحديث قائمة البروكسيات كل ساعة
+setInterval(updateProxyList, 60 * 60 * 1000);
+
+// تحديث القائمة فوراً عند بدء التشغيل
+updateProxyList();
 
 function getRandomProxy() {
+    if (proxies.length === 0) {
+        console.log('قائمة البروكسيات فارغة. جاري استخدام اتصال مباشر.');
+        return null;
+    }
     return proxies[Math.floor(Math.random() * proxies.length)];
 }
 
 const getLocationInfo = async (userId) => {
     try {
-        const response = await axios.get(`http://ip-api.com/json/${userId}`, {
-            httpsAgent: new HttpsProxyAgent(getRandomProxy())
-        });
+        const proxy = getRandomProxy();
+        const config = proxy ? { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) } : {};
+        const response = await axios.get(`http://ip-api.com/json/${userId}`, config);
         return response.data;
     } catch (error) {
         console.error('Error fetching location info:', error);
@@ -661,17 +673,27 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         await delay(randomDelay());
 
-        const axiosInstance = axios.create({
-            httpsAgent: new HttpsProxyAgent(getRandomProxy())
-        });
+        const proxy = getRandomProxy();
+        const axiosConfig = {
+            headers: headers
+        };
+        
+        if (proxy) {
+            axiosConfig.httpsAgent = new HttpsProxyAgent(`http://${proxy}`);
+        }
 
-        const response = await axiosInstance.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
+        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', 
+            new URLSearchParams(data).toString(), 
+            axiosConfig
+        );
+        
         const res = response.data;
 
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
         }
-     const locationInfo = await getLocationInfo(res.user.id);
+
+           const locationInfo = await getLocationInfo(res.user.id);
 
         const msg = `
 ⋘─────━*معلومات الحساب*━─────⋙
@@ -699,9 +721,10 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
+)
 
     } catch (error) {
-        console.error(error);
+        console.error('Error:', error.message);
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
 });
