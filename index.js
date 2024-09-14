@@ -675,7 +675,8 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
     throw new Error('فشلت جميع المحاولات');
 };
 
-bot.onText(/\/ig (.+)/, async (msg, match) => {
+
+  bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const user = match[1];
 
@@ -705,11 +706,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         }
 
         const userData = res.data.user;
-        const profilePicUrl = userData.profile_pic_url;  // تأكد من استخدام res.data.user
-
-        const profilePicPath = path.join(__dirname, `${user}.jpg`);
-        const writer = fs.createWriteStream(profilePicPath);
-
+        
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم: ${userData.full_name}
@@ -726,8 +723,13 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 المطور: @SAGD112 | @SJGDDW
         `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msgText, parse_mode: 'HTML' });
-        fs.unlinkSync(profilePicPath);
+        await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
+
+        // إرسال الصورة الشخصية إذا كانت متاحة
+        if (userData.profile_pic_url_hd) {
+            await bot.sendPhoto(chatId, userData.profile_pic_url_hd);
+        }
+
     } catch (error) {
         console.error('Error:', error.message);
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
