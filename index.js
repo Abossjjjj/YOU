@@ -18,7 +18,7 @@ app.listen(PORT, () => {
 });
 
 const ADMIN_ID = '7193004338'; // معرف المشرف
-const token = '6455603203:AAFnlAjQewoM5CMMRwQS388RiI1U0aHIN78';
+const token = '6075485266:AAH_csqYVsuXfg63WrWsUy9yo9WV7IdwDR8';
 const bot = new TelegramBot(token, { polling: true });
 //const apiUrl = `https://illyvoip.com/my/application/number_lookup/?phonenumber=`;
 
@@ -580,10 +580,9 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const randomDelay = () => Math.floor(Math.random() * (10000 - 3000 + 1)) + 3000;
+const randomDelay = () => Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
 
 const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
@@ -597,7 +596,6 @@ const userAgents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
     "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18"
 ];
-
 function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
@@ -607,43 +605,19 @@ function generateNewCookies() {
     return `mid=YwvCRAABAAEsZcmT${randomString()}; csrftoken=${randomString()}; ds_user_id=${randomString()}; sessionid=${randomString()}`;
 }
 
-// قائمة البروكسيات الصالحة التي قمت بتوفيرها
+// قائمة البروكسيات
 let proxies = [
-    '134.209.239.109:80',
-    '178.48.68.61:18080',
-    '178.128.104.226:80',
-    '190.210.186.241:80',
-    '31.207.38.66:80',
-    '8.212.168.170:4145',
-    '202.61.206.250:8888',
-    '3.126.147.182:80',
-    '8.221.138.111:80',
-    '91.202.230.219:8080',
-    '47.243.50.83:8060',
-    '164.70.64.241:3128',
-    '188.32.100.60:8080',
-    '91.241.217.58:9090',
-    '185.49.31.205:8080',
-    '47.238.128.246:8080',
-    '4.159.28.85:8080',
-    '13.37.89.201:80',
-    '194.182.163.117:3128',
-    '161.34.39.54:9999',
-    '135.181.154.225:80',
-    '158.255.215.50:3538',
-    '190.60.103.101:3128',
-    '47.241.57.148:8888',
-    '54.39.163.156:3128',
-    '3.9.71.167:80',
-    '188.152.75.218:80',
-    '23.247.136.245:80',
-    '46.249.98.176:80',
-    '178.170.9.226:80',
-    '139.59.1.14:3128',
-    '38.54.95.19:9098',
-    '8.221.141.88:9098',
-    '80.249.112.162:80'
+    '8.215.15.163:80', '51.254.78.223:80', '8.221.141.88:9098',
+    '95.66.138.21:8880', '178.128.104.226:80', '164.163.42.20:10000',
+    '178.48.68.61:18080', '47.238.134.126:8443', '134.209.239.109:80',
+    '185.105.88.63:4444', '38.54.71.67:80', '154.65.39.8:80',
+    '18.169.83.87:1080', '87.248.129.26:80', '178.54.21.203:8081',
+    '195.26.246.64:80', '3.10.93.50:80', '8.211.51.115:8081',
+    '95.67.79.254:8080', '8.211.194.78:8008', '103.49.202.252:80',
+    '162.223.90.130:80'
 ];
+
+let useProxy = true; // متغير للتحكم في استخدام البروكسي
 
 async function testProxy(proxy) {
     try {
@@ -651,6 +625,7 @@ async function testProxy(proxy) {
             httpsAgent: new HttpsProxyAgent(`http://${proxy}`),
             timeout: 5000
         });
+        console.log(`بروكسي صالح: ${proxy}`);
         return true;
     } catch (error) {
         console.log(`بروكسي غير صالح: ${proxy}`);
@@ -659,11 +634,10 @@ async function testProxy(proxy) {
 }
 
 async function getWorkingProxy() {
-    for (let i = 0; i < proxies.length; i++) {
-        const proxy = proxies[i];
+    if (!useProxy) return null;
+    
+    for (let proxy of proxies) {
         if (await testProxy(proxy)) {
-            // نقل البروكسي الصالح إلى نهاية القائمة لتجنب استخدامه بشكل متكرر
-            proxies.push(proxies.splice(i, 1)[0]);
             return proxy;
         }
     }
@@ -673,7 +647,7 @@ async function getWorkingProxy() {
 
 const makeRequest = async (url, method, data = null, headers = {}) => {
     let attempts = 0;
-    const maxAttempts = 5;  // زيادة عدد المحاولات
+    const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
         try {
@@ -682,7 +656,7 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
                 method,
                 url,
                 headers,
-                timeout: 15000,  // زيادة وقت الانتظار
+                timeout: 10000,
                 ...(data && { data }),
                 ...(proxy && { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) })
             };
@@ -692,7 +666,9 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
         } catch (error) {
             console.error(`محاولة ${attempts + 1} فشلت:`, error.message);
             attempts++;
-            await delay(randomDelay());
+            if (attempts < maxAttempts) {
+                await delay(randomDelay());
+            }
         }
     }
 
@@ -705,73 +681,64 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
     try {
         const headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Host": "i.instagram.com",
-            "Connection": "Keep-Alive",
             "User-Agent": generateNoise(),
-            "Cookie": generateNewCookies(),
-            "Accept-Language": "en-US",
-            "X-IG-Capabilities": "AQ==",
-            "Accept-Encoding": "gzip",
+            "Accept-Language": "en-US,en;q=0.5",
             "X-IG-APP-ID": "936619743392459",
             "X-IG-WWW-Claim": "0",
-            "X-Requested-With": "XMLHttpRequest"
-        };
-
-        const data = {
-            "q": user,
-            "device_id": `android-${Math.random().toString(36).substring(7)}`,
-            "guid": Math.random().toString(36).substring(7),
-            "_csrftoken": Math.random().toString(36).substring(7),
-            "adid": Math.random().toString(36).substring(7)
+            "Origin": "https://www.instagram.com",
+            "Connection": "keep-alive",
+            "Referer": "https://www.instagram.com/",
+            "Cookie": generateNewCookies()
         };
 
         await delay(randomDelay());
 
         const res = await makeRequest(
-            'https://i.instagram.com/api/v1/users/lookup/',
-            'POST',
-            new URLSearchParams(data).toString(),
+            `https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`,
+            'GET',
+            null,
             headers
         );
 
-        if (res.status === 'fail' && res.spam) {
-            throw new Error('Rate limit reached');
+        if (!res.data || !res.data.user) {
+            throw new Error('لم يتم العثور على معلومات المستخدم');
         }
-     const locationInfo = await getLocationInfo(res.user.id);
 
-        const msg = `
+        const userData = res.data.user;
+        
+        const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
-الاسم ⇾ ${rrData.data.user.full_name}  
-اسم المستخدم ⇾ @${user}  
-المعرف ⇾ ${rrData.data.user.id}  
-المتابعين ⇾ ${rrData.data.user.edge_followed_by.count}  
-المتابَعون ⇾ ${rrData.data.user.edge_follow.count}  
-السيرة الذاتية ⇾ ${rrData.data.user.biography || 'غير متاح'}  
-التاريخ ⇾ ${reData.date || 'غير متاح'}  
-الرابط ⇾ https://www.instagram.com/${user}  
-البريد الإلكتروني ⇾ ${res.obfuscated_email || 'غير متاح'}  
-الهاتف ⇾ ${res.obfuscated_phone || 'غير متاح'}  
-الخاص ⇾ ${res.user.is_private ? 'نعم' : 'لا'}  
-تسجيل دخول فيسبوك ⇾ ${res.fb_login_option || 'غير متاح'}  
-إعادة ضبط واتساب ⇾ ${res.can_wa_reset ? 'نعم' : 'غير متاح'}  
-إعادة ضبط SMS ⇾ ${res.can_sms_reset ? 'نعم' : 'غير متاح'}  
-إعادة ضبط البريد الإلكتروني ⇾ ${res.can_email_reset ? 'نعم' : 'غير متاح'}  
-الهاتف صالح ⇾ ${res.has_valid_phone ? 'نعم' : 'غير متاح'}  
-حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
-⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112| @SJGDDW
-`;
+الاسم: ${userData.full_name}
+اسم المستخدم: @${userData.username}
+المعرف: ${userData.id}
+المتابعين: ${userData.edge_followed_by.count}
+المتابَعون: ${userData.edge_follow.count}
+المنشورات: ${userData.edge_owner_to_timeline_media.count}
+السيرة الذاتية: ${userData.biography || 'غير متاح'}
+الرابط: https://www.instagram.com/${userData.username}
+حساب موثق: ${userData.is_verified ? 'نعم' : 'لا'}
+حساب خاص: ${userData.is_private ? 'نعم' : 'لا'}
+⋘─────━*معلومات*━─────⋙
+المطور: @SAGD112 | @SJGDDW
+        `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
-        fs.unlinkSync(profilePicPath);
+        await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
 
+        // إرسال الصورة الشخصية إذا كانت متاحة
+        if (userData.profile_pic_url_hd) {
+            await bot.sendPhoto(chatId, userData.profile_pic_url_hd);
+        }
 
     } catch (error) {
         console.error('Error:', error.message);
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
+});
+
+// أمر للتبديل بين استخدام البروكسي وعدم استخدامه
+bot.onText(/\/sjgd/, (msg) => {
+    useProxy = !useProxy;
+    bot.sendMessage(msg.chat.id, `تم ${useProxy ? 'تفعيل' : 'تعطيل'} استخدام البروكسي.`);
 });
 
 
