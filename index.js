@@ -580,6 +580,7 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const randomDelay = () => Math.floor(Math.random() * (10000 - 3000 + 1)) + 3000;
@@ -596,6 +597,7 @@ const userAgents = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
     "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18"
 ];
+
 function generateNoise() {
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
@@ -605,24 +607,43 @@ function generateNewCookies() {
     return `mid=YwvCRAABAAEsZcmT${randomString()}; csrftoken=${randomString()}; ds_user_id=${randomString()}; sessionid=${randomString()}`;
 }
 
-let proxies = [];
-let workingProxies = new Set();
-
-async function updateProxyList() {
-    try {
-        const response = await axios.get('https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt', { timeout: 10000 });
-        proxies = response.data.split('\n').filter(proxy => proxy.trim() !== '');
-        console.log(`تم تحديث قائمة البروكسيات. العدد: ${proxies.length}`);
-    } catch (error) {
-        console.error('خطأ في تحديث قائمة البروكسيات:', error.message);
-    }
-}
-
-// تحديث قائمة البروكسيات كل 30 دقيقة
-setInterval(updateProxyList, 30 * 60 * 1000);
-
-// تحديث القائمة فوراً عند بدء التشغيل
-updateProxyList();
+// قائمة البروكسيات الصالحة التي قمت بتوفيرها
+let proxies = [
+    '158.255.215.50:14449',
+    '51.254.78.223:80',
+    '185.232.169.108:4444',
+    '190.210.186.241:80',
+    '31.207.38.66:80',
+    '8.212.168.170:4145',
+    '202.61.206.250:8888',
+    '3.126.147.182:80',
+    '8.221.138.111:80',
+    '91.202.230.219:8080',
+    '47.243.50.83:8060',
+    '164.70.64.241:3128',
+    '188.32.100.60:8080',
+    '91.241.217.58:9090',
+    '185.49.31.205:8080',
+    '47.238.128.246:8080',
+    '4.159.28.85:8080',
+    '13.37.89.201:80',
+    '194.182.163.117:3128',
+    '161.34.39.54:9999',
+    '135.181.154.225:80',
+    '158.255.215.50:3538',
+    '190.60.103.101:3128',
+    '47.241.57.148:8888',
+    '54.39.163.156:3128',
+    '3.9.71.167:80',
+    '188.152.75.218:80',
+    '23.247.136.245:80',
+    '46.249.98.176:80',
+    '178.170.9.226:80',
+    '139.59.1.14:3128',
+    '38.54.95.19:9098',
+    '8.221.141.88:9098',
+    '80.249.112.162:80'
+];
 
 async function testProxy(proxy) {
     try {
@@ -630,32 +651,29 @@ async function testProxy(proxy) {
             httpsAgent: new HttpsProxyAgent(`http://${proxy}`),
             timeout: 5000
         });
-        workingProxies.add(proxy);
         return true;
     } catch (error) {
-        workingProxies.delete(proxy);
+        console.log(`بروكسي غير صالح: ${proxy}`);
         return false;
     }
 }
 
 async function getWorkingProxy() {
-    if (workingProxies.size > 0) {
-        return Array.from(workingProxies)[Math.floor(Math.random() * workingProxies.size)];
-    }
-    
-    for (let proxy of proxies) {
+    for (let i = 0; i < proxies.length; i++) {
+        const proxy = proxies[i];
         if (await testProxy(proxy)) {
+            // نقل البروكسي الصالح إلى نهاية القائمة لتجنب استخدامه بشكل متكرر
+            proxies.push(proxies.splice(i, 1)[0]);
             return proxy;
         }
     }
-    
     console.log('لم يتم العثور على بروكسي يعمل. استخدام اتصال مباشر.');
     return null;
 }
 
 const makeRequest = async (url, method, data = null, headers = {}) => {
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5;  // زيادة عدد المحاولات
 
     while (attempts < maxAttempts) {
         try {
@@ -664,7 +682,7 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
                 method,
                 url,
                 headers,
-                timeout: 10000,
+                timeout: 15000,  // زيادة وقت الانتظار
                 ...(data && { data }),
                 ...(proxy && { httpsAgent: new HttpsProxyAgent(`http://${proxy}`) })
             };
@@ -720,7 +738,6 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
         }
-
      const locationInfo = await getLocationInfo(res.user.id);
 
         const msg = `
@@ -756,6 +773,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
 });
+
 
 
 console.log('Bot is running...');
