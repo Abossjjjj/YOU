@@ -731,15 +731,7 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
 المطور: @SAGD112| @SJGDDW
 `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
-        fs.unlinkSync(profilePicPath);
-
-    } catch (error) {
-        console.error(error);
-        bot.sendMessage(chatId, `Error fetching info for ${user}`);
-    }
-});
-        `;
+        
 
         await bot.sendMessage(chatId, msgText, { parse_mode: 'HTML' });
 
