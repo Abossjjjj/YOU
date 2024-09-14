@@ -721,7 +721,7 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 
         await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
-)
+
 
     } catch (error) {
         console.error('Error:', error.message);
