@@ -691,7 +691,11 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "Cookie": generateNewCookies()
         };
 
-        await delay(randomDelay());
+       await delay(randomDelay());
+
+        const profilePicUrl = res.user.profile_pic_url;
+        const profilePicPath = path.join(__dirname, `${user}.jpg`);
+        const writer = fs.createWriteStream(profilePicPath);
 
         const res = await makeRequest(
             `https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`,
