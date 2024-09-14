@@ -578,29 +578,53 @@ bot.onText(/\/tik (.+)/, async (msg, match) => {
 });
 
 
-  const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
-// توليد تأخير عشوائي بين 1 إلى 5 ثواني
-const randomDelay = () => Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// تحسين توليد التأخير العشوائي
+const randomDelay = () => Math.floor(Math.random() * (10000 - 3000 + 1)) + 3000;
+
+// توسيع قائمة User-Agents
+const userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.18"
+];
 
 function generateNoise() {
-    const userAgents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Safari/537.36",
-        "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.5615.138 Mobile Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0"
-    ];
     return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
 
+// تحسين توليد الكوكيز
 function generateNewCookies() {
-    return `mid=YwvCRAABAAEsZcmT${Math.random().toString(36).substring(7)}; csrftoken=${Math.random().toString(36).substring(7)}`;
+    const randomString = () => Math.random().toString(36).substring(7);
+    return `mid=YwvCRAABAAEsZcmT${randomString()}; csrftoken=${randomString()}; ds_user_id=${randomString()}; sessionid=${randomString()}`;
+}
+
+// إضافة قائمة بروكسيات (يجب تحديثها بانتظام)
+const proxies = [
+    'http://proxy1.example.com:8080',
+    'http://proxy2.example.com:8080',
+    'http://proxy3.example.com:8080'
+];
+
+function getRandomProxy() {
+    return proxies[Math.floor(Math.random() * proxies.length)];
 }
 
 const getLocationInfo = async (userId) => {
     try {
-        const response = await axios.get(`http://ip-api.com/json/${userId}`);
+        const response = await axios.get(`http://ip-api.com/json/${userId}`, {
+            httpsAgent: new HttpsProxyAgent(getRandomProxy())
+        });
         return response.data;
     } catch (error) {
         console.error('Error fetching location info:', error);
@@ -622,75 +646,34 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
             "Accept-Language": "en-US",
             "X-IG-Capabilities": "AQ==",
             "Accept-Encoding": "gzip",
+            "X-IG-APP-ID": "936619743392459",
+            "X-IG-WWW-Claim": "0",
+            "X-Requested-With": "XMLHttpRequest"
         };
 
         const data = {
             "q": user,
-            "device_id": `android${Math.random().toString(36).substring(7)}`,
+            "device_id": `android-${Math.random().toString(36).substring(7)}`,
             "guid": Math.random().toString(36).substring(7),
-            "_csrftoken": Math.random().toString(36).substring(7)
+            "_csrftoken": Math.random().toString(36).substring(7),
+            "adid": Math.random().toString(36).substring(7)
         };
 
-        await delay(randomDelay()); // تأخير عشوائي بين الطلبات
+        await delay(randomDelay());
 
-        const response = await axios.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
+        const axiosInstance = axios.create({
+            httpsAgent: new HttpsProxyAgent(getRandomProxy())
+        });
+
+        const response = await axiosInstance.post('https://i.instagram.com/api/v1/users/lookup/', new URLSearchParams(data).toString(), { headers });
         const res = response.data;
 
         if (res.status === 'fail' && res.spam) {
             throw new Error('Rate limit reached');
         }
+     const locationInfo = await getLocationInfo(res.user.id);
 
-        const profilePicUrl = res.user.profile_pic_url;
-        const profilePicPath = path.join(__dirname, `${user}.jpg`);
-        const writer = fs.createWriteStream(profilePicPath);
-
-        const picResponse = await axios({
-            url: profilePicUrl,
-            method: 'GET',
-            responseType: 'stream'
-        });
-
-        picResponse.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        const he = {
-            'accept': '*/*',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'ar,en;q=0.9',
-            'cookie': generateNewCookies(),
-            'referer': `https://www.instagram.com/${user}/?hl=ar`,
-            'sec-ch-prefers-color-scheme': 'dark',
-            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': generateNoise(),
-            'viewport-width': '1051',
-            'x-asbd-id': '198387',
-            'x-csrftoken': Math.random().toString(36).substring(7),
-            'x-ig-app-id': '936619743392459',
-            'x-ig-www-claim': '0',
-            'x-requested-with': 'XMLHttpRequest',
-        };
-
-        await delay(randomDelay());  // تأخير عشوائي آخر
-
-        const rr = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: he });
-        const rrData = rr.data;
-
-        const re = await axios.get(`https://o7aa.pythonanywhere.com/?id=${rrData.data.user.id}`);
-        const reData = re.data;
-
-        // إضافة طلب لمعرفة الدولة بناءً على معرف الحساب
-        const locationInfo = await getLocationInfo(res.user.id);
-
-        const msgText = `
+        const msg = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم ⇾ ${rrData.data.user.full_name}  
 اسم المستخدم ⇾ @${user}  
@@ -711,18 +694,17 @@ bot.onText(/\/ig (.+)/, async (msg, match) => {
 حساب موثق ⇾ ${res.user.is_verified ? 'نعم' : 'لا'}  
 الدولة ⇾ ${locationInfo.country || 'غير متاح'}  
 ⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112 | @SJGDDW
+المطور: @SAGD112| @SJGDDW
 `;
 
-        await bot.sendPhoto(chatId, profilePicPath, { caption: msgText, parse_mode: 'HTML' });
+        await bot.sendPhoto(chatId, profilePicPath, { caption: msg, parse_mode: 'HTML' });
         fs.unlinkSync(profilePicPath);
 
     } catch (error) {
         console.error(error);
-        bot.sendMessage(chatId, `Error fetching info for ${user}`);
+        bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
 });
 
 
 console.log('Bot is running...');
-
