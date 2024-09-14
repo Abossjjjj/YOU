@@ -678,47 +678,39 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
 
   
 
-     bot.onText(/\/ig (.+)/, async (msg, match) => {
+bot.onText(/\/ig (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const user = match[1];
 
     try {
-        const headers = {
+        // إعدادات الهيدر للطلب الأول (Instagram)
+        const headersIG = {
             "User-Agent": generateNoise(),
             "Accept-Language": "en-US,en;q=0.5",
             "X-IG-APP-ID": "936619743392459",
             "X-IG-WWW-Claim": "0",
             "Origin": "https://www.instagram.com",
             "Connection": "keep-alive",
-            "Referer": "https://www.instagram.com/",
-            "Cookie": generateNewCookies()
+            "Referer": `https://www.instagram.com/${user}/`,
+            "Cookie": generateNewCookies(),
         };
 
         await delay(randomDelay());
 
-        const res = await makeRequest(
-            `https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`,
-            'GET',
-            null,
-            headers
-        );
+        // الطلب الأول لجلب معلومات المستخدم من Instagram
+        const igResponse = await axios.get(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${user}`, { headers: headersIG });
 
-        if (!res.data || !res.data.user) {
+        if (!igResponse.data || !igResponse.data.user) {
             throw new Error('لم يتم العثور على معلومات المستخدم');
         }
 
-        const userData = res.data.user;
+        const userData = igResponse.data.user;
 
-        // تحقق من وجود الحقول الجديدة
-        const obfuscatedEmail = res.obfuscated_email || 'غير متاح';
-        const obfuscatedPhone = res.obfuscated_phone || 'غير متاح';
-        const fbLoginOption = res.fb_login_option || 'غير متاح';
-        const canWaReset = res.can_wa_reset ? 'نعم' : 'غير متاح';
-        const canSmsReset = res.can_sms_reset ? 'نعم' : 'غير متاح';
-        const canEmailReset = res.can_email_reset ? 'نعم' : 'غير متاح';
-        const hasValidPhone = res.has_valid_phone ? 'نعم' : 'غير متاح';
-        const country = res.locationInfo?.country || 'غير متاح';
+        // الطلب الثاني لجلب معلومات إضافية من o7aa.pythonanywhere
+        const pythonanywhereResponse = await axios.get(`https://o7aa.pythonanywhere.com/?id=${userData.id}`);
+        const extraData = pythonanywhereResponse.data;
 
+        // نص الرسالة الذي سيتم إرساله مع دمج جميع المعلومات
         const msgText = `
 ⋘─────━*معلومات الحساب*━─────⋙
 الاسم ⇾ ${userData.full_name}  
@@ -726,21 +718,16 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
 المعرف ⇾ ${userData.id}  
 المتابعين ⇾ ${userData.edge_followed_by.count}  
 المتابَعون ⇾ ${userData.edge_follow.count}  
+عدد المنشورات ⇾ ${extraData.media_count || 'غير متاح'}  
 السيرة الذاتية ⇾ ${userData.biography || 'غير متاح'}  
+الحساب خاص ⇾ ${userData.is_private ? 'نعم' : 'لا'}  
+موثق ⇾ ${userData.is_verified ? 'نعم' : 'لا'}  
+تاريخ إنشاء الحساب ⇾ ${new Date(extraData.date * 1000).toLocaleDateString() || 'غير متاح'}  
+الموقع ⇾ ${extraData.country || 'غير متاح'}  
 التاريخ ⇾ ${new Date().toLocaleDateString()}  
 الرابط ⇾ https://www.instagram.com/${user}  
-البريد الإلكتروني ⇾ ${obfuscatedEmail}  
-الهاتف ⇾ ${obfuscatedPhone}  
-الخاص ⇾ ${userData.is_private ? 'نعم' : 'لا'}  
-تسجيل دخول فيسبوك ⇾ ${fbLoginOption}  
-إعادة ضبط واتساب ⇾ ${canWaReset}  
-إعادة ضبط SMS ⇾ ${canSmsReset}  
-إعادة ضبط البريد الإلكتروني ⇾ ${canEmailReset}  
-الهاتف صالح ⇾ ${hasValidPhone}  
-حساب موثق ⇾ ${userData.is_verified ? 'نعم' : 'لا'}  
-الدولة ⇾ ${country}  
-⋘─────━*معلومات*━─────⋙  
-المطور: @SAGD112| @SJGDDW
+⋘─────━*معلومات إضافية*━─────⋙  
+المطور: @SAGD112 | @SJGDDW
         `;
 
         // إرسال الصورة الشخصية مع النص في نفس الوقت
@@ -757,8 +744,8 @@ const makeRequest = async (url, method, data = null, headers = {}) => {
         console.error('Error:', error.message);
         bot.sendMessage(chatId, `حدث خطأ أثناء جلب المعلومات لـ ${user}. يرجى المحاولة مرة أخرى لاحقًا.`);
     }
-});
-
+}
+     
 
 
         
