@@ -2,8 +2,10 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const FormData = require('form-data');
+const fetch = require('node-fetch');  // استيراد node-fetch لتحميل الصورة
+const express = require('express');  // استيراد express
 
-
+const app = express();
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 
@@ -14,7 +16,6 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
-
 // Ping to keep the server alive
 setInterval(() => {
     http.get('https://stream-denim-regnosaurus.glitch.me/:' + PORT);
