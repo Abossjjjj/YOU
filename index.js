@@ -1,5 +1,4 @@
 const axios = require('axios');
-const fetch = require('node-fetch');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const FormData = require('form-data');
